@@ -6,7 +6,7 @@
     }
   },
   "env": {
-    "VERCEL_PHP_VERSION": "8.2"
+    "VERCEL_PHP_VERSION": "8.2.0"
   },
   "routes": [
     {
