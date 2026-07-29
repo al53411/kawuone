@@ -14,10 +14,6 @@
       "dest": "/public/build/$1"
     },
     {
-      "src": "/api/test.php",
-      "dest": "/api/test.php"
-    },
-    {
       "src": "/(.*)",
       "dest": "/api/index.php"
     }
