@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Guru;
+namespace App\Http\Controllers\Guru; // <-- Ubah Admin jadi Guru
 
 use App\Http\Controllers\Controller;
 use App\Models\JurnalGuru;
 use App\Models\Kelas;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // <-- Ditambahkan agar Auth::id() terbaca sempurna
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class JurnalController extends Controller
@@ -17,7 +17,7 @@ class JurnalController extends Controller
     public function index()
     {
         $jurnals = JurnalGuru::with('kelas')
-            ->where('guru_id', Auth::id()) // <-- Menggunakan Auth::id()
+            ->where('guru_id', Auth::id())
             ->latest()
             ->get();
 
@@ -27,7 +27,7 @@ class JurnalController extends Controller
     }
 
     /**
-     * Menampilkan form tambah jurnal (opsional jika menggunakan modal di index).
+     * Menampilkan form tambah jurnal.
      */
     public function create()
     {
@@ -50,11 +50,10 @@ class JurnalController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Otomatis menentukan nama hari dari tanggal (Bahasa Indonesia)
         $namaHari = Carbon::parse($request->tanggal)->locale('id')->isoFormat('dddd');
 
         JurnalGuru::create([
-            'guru_id'         => Auth::id(), // <-- Menggunakan Auth::id()
+            'guru_id'         => Auth::id(),
             'kelas_id'        => $request->kelas_id,
             'hari'            => $namaHari,
             'tanggal'         => $request->tanggal,
@@ -74,7 +73,7 @@ class JurnalController extends Controller
      */
     public function destroy($id)
     {
-        $jurnal = JurnalGuru::where('guru_id', Auth::id())->findOrFail($id); // <-- Menggunakan Auth::id()
+        $jurnal = JurnalGuru::where('guru_id', Auth::id())->findOrFail($id);
         $jurnal->delete();
 
         return redirect()->back()->with('success', 'Jurnal mengajar berhasil dihapus.');
