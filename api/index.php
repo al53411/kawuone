@@ -16,7 +16,7 @@ if (!file_exists($bootstrapCachePath)) {
     mkdir($bootstrapCachePath, 0755, true);
 }
 
-// 2. Set environment variable & override bootstrap cache path
+// 2. Set environment variable untuk storage path
 putenv("APP_STORAGE={$storagePath}");
 $_ENV['APP_STORAGE'] = $storagePath;
 
@@ -25,7 +25,7 @@ require __DIR__ . '/../vendor/autoload.php';
 /** @var \Illuminate\Foundation\Application $app */
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-// Bind path storage dan bootstrap cache ke /tmp Vercel
+// Bind path storage ke /tmp
 $app->useStoragePath($storagePath);
 $app->useBootstrapPath($bootstrapCachePath);
 
