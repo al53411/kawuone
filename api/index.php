@@ -1,41 +1,39 @@
 <?php
 
-// 1. Arahkan direktori penyimpanan sementara ke /tmp Vercel
-$storagePath = '/tmp/storage';
-$bootstrapCachePath = '/tmp/bootstrap/cache';
+// 1. Buat folder temporary yang dibutuhkan Laravel di Vercel
+$directories = [
+    '/tmp/storage/app/public',
+    '/tmp/storage/framework/views',
+    '/tmp/storage/framework/cache/data',
+    '/tmp/storage/framework/sessions',
+    '/tmp/bootstrap/cache',
+];
 
-// Buat direktori jika belum ada
-if (!file_exists($storagePath . '/framework/views')) {
-    mkdir($storagePath . '/framework/views', 0755, true);
-    mkdir($storagePath . '/framework/cache/data', 0755, true);
-    mkdir($storagePath . '/framework/sessions', 0755, true);
-    mkdir($storagePath . '/logs', 0755, true);
+foreach ($directories as $directory) {
+    if (!file_exists($directory)) {
+        mkdir($directory, 0755, true);
+    }
 }
 
-if (!file_exists($bootstrapCachePath)) {
-    mkdir($bootstrapCachePath, 0755, true);
-}
+// 2. Set Environment path untuk Bootstrap Cache & Storage
+putenv('APP_SERVICES_CACHE=/tmp/bootstrap/cache/services.php');
+putenv('APP_PACKAGES_CACHE=/tmp/bootstrap/cache/packages.php');
+putenv('APP_CONFIG_CACHE=/tmp/bootstrap/cache/config.php');
+putenv('APP_ROUTES_CACHE=/tmp/bootstrap/cache/routes.php');
+putenv('APP_EVENTS_CACHE=/tmp/bootstrap/cache/events.php');
 
-// 2. Set environment variable untuk storage path
-putenv("APP_STORAGE={$storagePath}");
-$_ENV['APP_STORAGE'] = $storagePath;
-
+// 3. Load Autoload & Application
 require __DIR__ . '/../vendor/autoload.php';
-
-/** @var \Illuminate\Foundation\Application $app */
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-// Bind path storage ke /tmp
-$app->useStoragePath($storagePath);
-$app->useBootstrapPath($bootstrapCachePath);
+// 4. Custom Storage Path ke /tmp
+$app->useStoragePath('/tmp/storage');
 
-// 3. Jalankan HTTP Kernel Laravel
+// 5. Jalankan Request
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-
 $response = $kernel->handle(
     $request = Illuminate\Http\Request::capture()
 );
 
 $response->send();
-
 $kernel->terminate($request, $response);
