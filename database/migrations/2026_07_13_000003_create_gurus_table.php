@@ -9,14 +9,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-        public function up(): void
+    public function up(): void
     {
         Schema::create('gurus', function (Blueprint $table) {
             $table->id();
             $table->string('nip')->unique();
-            $table->string('nama_lengkap');
-            $table->string('jabatan'); // Contoh: Guru Kelas, Guru Agama, Kepala Sekolah
-            $table->string('golongan'); // Contoh: III/a, III/b, IV/a
+            $table->string('nama_guru'); // <-- Diubah dari nama_lengkap ke nama_guru
+            $table->string('jabatan')->nullable(); // Ditambah nullable agar tidak error jika kosong
+            $table->string('golongan')->nullable();
             $table->timestamps();
         });
     }
