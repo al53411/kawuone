@@ -27,60 +27,78 @@
 
                 <!-- Navigation Links -->
                 <nav class="mt-6 px-4 space-y-1">
-                    @if(Auth::user()->role === 'guru')
-                        <!-- Menu Guru -->
-                        <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Menu Guru
-                        </div>
+                    @auth
+                        @if(Auth::user()->role === 'guru')
+                            <!-- Menu Guru -->
+                            <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Menu Guru
+                            </div>
 
-                        <a href="{{ route('guru.dashboard') }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                            <span class="mr-3">📊</span> Dashboard
-                        </a>
+                            <a href="{{ route('guru.dashboard') }}" 
+                               class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="mr-3">📊</span> Dashboard
+                            </a>
 
-                        <a href="{{ route('guru.siswa.index') }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.siswa.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                            <span class="mr-3">👨‍🎓</span> Data Siswa
-                        </a>
+                            <a href="{{ route('guru.siswa.index') }}" 
+                               class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.siswa.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="mr-3">👨‍🎓</span> Data Siswa
+                            </a>
 
-                        <a href="{{ route('guru.jurnal.index') }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.jurnal.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                            <span class="mr-3">📖</span> Jurnal Mengajar
-                        </a>
+                            <a href="{{ route('guru.jurnal.index') }}" 
+                               class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('guru.jurnal.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="mr-3">📖</span> Jurnal Mengajar
+                            </a>
+                        @else
+                            <!-- Menu Admin -->
+                            <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Menu Admin
+                            </div>
+
+                            <a href="{{ route('admin.dashboard') }}" 
+                               class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="mr-3">📊</span> Dashboard Admin
+                            </a>
+
+                            <a href="{{ route('admin.siswa.index') }}" 
+                               class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.siswa.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <span class="mr-3">👨‍🎓</span> Kelola Siswa
+                            </a>
+                        @endif
                     @else
-                        <!-- Menu Admin -->
+                        <!-- Menu Guest (Belum Login) -->
                         <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Menu Admin
+                            Menu Utama
                         </div>
-
-                        <a href="{{ route('admin.dashboard') }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                            <span class="mr-3">📊</span> Dashboard Admin
+                        <a href="{{ route('login') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                            <span class="mr-3">🔑</span> Masuk / Login
                         </a>
-
-                        <a href="{{ route('admin.siswa.index') }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.siswa.*') ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                            <span class="mr-3">👨‍🎓</span> Kelola Siswa
-                        </a>
-                    @endif
+                    @endauth
                 </nav>
             </div>
 
             <!-- Profile & Logout Bottom Section -->
             <div class="p-4 border-t border-slate-800 bg-slate-950/50">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold text-white truncate max-w-[130px]">{{ Auth::user()->name }}</p>
-                        <p class="text-xs text-slate-400 capitalize">{{ Auth::user()->role }}</p>
+                @auth
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-white truncate max-w-[130px]">{{ Auth::user()->name }}</p>
+                            <p class="text-xs text-slate-400 capitalize">{{ Auth::user()->role }}</p>
+                        </div>
+                        
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" title="Logout" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800 transition">
+                                🚪
+                            </button>
+                        </form>
                     </div>
-                    
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" title="Logout" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800 transition">
-                            🚪
-                        </button>
-                    </form>
-                </div>
+                @else
+                    <div class="text-center">
+                        <a href="{{ route('login') }}" class="block w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition">
+                            Login Sistem
+                        </a>
+                    </div>
+                @endauth
             </div>
         </aside>
 
