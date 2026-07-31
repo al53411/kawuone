@@ -24,6 +24,7 @@ use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 // Redirect Halaman Utama langsung ke Login
 Route::get('/', function () {
@@ -128,13 +129,22 @@ require __DIR__.'/auth.php';
 
 
 // ==========================================
-// ROUTE MIGRATION SEMENTARA FOR VERCEL
+// ROUTE MIGRATION SEMENTARA FOR VERCEL + SUPABASE
 // ==========================================
 Route::get('/run-migrate', function () {
     try {
-        Artisan::call('migrate:fresh', [
+        // 1. Reset Schema Postgres Supabase secara menyeluruh agar bersih
+        DB::statement('DROP SCHEMA public CASCADE;');
+        DB::statement('CREATE SCHEMA public;');
+
+        // 2. Jalankan migration dari nol
+        Artisan::call('migrate', [
             '--force' => true,
-            '--seed'  => true,
+        ]);
+
+        // 3. Jalankan seeder
+        Artisan::call('db:seed', [
+            '--force' => true,
         ]);
 
         return '
