@@ -23,7 +23,9 @@ use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 
+// Redirect Halaman Utama langsung ke Login
 Route::get('/', function () {
     return redirect()->route('login');
 });
@@ -78,7 +80,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
     // Dashboard Admin Sekolah
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    // Validasi Jurnal oleh Kepala Sekolah / Admin (Ubah nama method agar tidak banguan dengan update data Kepsek)
+    // Validasi Jurnal oleh Kepala Sekolah / Admin
     Route::get('/kepala-sekolah/jurnal', [AdminKepalaSekolahController::class, 'indexValidasiJurnal'])->name('kepala-sekolah.jurnal.index');
     Route::put('/kepala-sekolah/jurnal/{id}', [AdminKepalaSekolahController::class, 'updateStatusJurnal'])->name('kepala-sekolah.jurnal.update');
 
@@ -124,15 +126,29 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-// Route sementara untuk jalankan migrate dari browser
+
+// ==========================================
+// ROUTE MIGRATION SEMENTARA FOR VERCEL
+// ==========================================
 Route::get('/run-migrate', function () {
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+        Artisan::call('migrate:fresh', [
             '--force' => true,
-            '--seed' => true,
+            '--seed'  => true,
         ]);
-        return 'Migration & Seeding Berhasil!';
+
+        return '
+            <div style="font-family: sans-serif; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
+                <h2 style="margin-top:0;">✅ Migration & Seeding Berhasil!</h2>
+                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . Artisan::output() . '</pre>
+            </div>
+        ';
     } catch (\Exception $e) {
-        return 'Gagal: ' . $e->getMessage();
+        return '
+            <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
+                <h2 style="margin-top:0;">❌ Migration Gagal!</h2>
+                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . $e->getMessage() . '</pre>
+            </div>
+        ';
     }
 });
