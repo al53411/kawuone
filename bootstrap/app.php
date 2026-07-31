@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         
-        // 2. Daftarkan alias 'role' di sini
+        // 2. Percayai proxy Vercel agar HTTPS terbaca sempurna (Menghilangkan error Form is not secure)
+        $middleware->trustProxies(at: '*');
+
+        // 3. Daftarkan alias 'role' di sini
         $middleware->alias([
             'role' => CheckRole::class,
         ]);
