@@ -133,18 +133,10 @@ require __DIR__.'/auth.php';
 // ==========================================
 Route::get('/run-migrate', function () {
     try {
-        // 1. Reset Schema Postgres Supabase secara menyeluruh agar bersih
-        DB::statement('DROP SCHEMA public CASCADE;');
-        DB::statement('CREATE SCHEMA public;');
-
-        // 2. Jalankan migration dari nol
-        Artisan::call('migrate', [
+        // Gunakan migrate:fresh bawaan Laravel yang otomatis membersihkan semua tabel
+        Artisan::call('migrate:fresh', [
             '--force' => true,
-        ]);
-
-        // 3. Jalankan seeder
-        Artisan::call('db:seed', [
-            '--force' => true,
+            '--seed'  => true,
         ]);
 
         return '
