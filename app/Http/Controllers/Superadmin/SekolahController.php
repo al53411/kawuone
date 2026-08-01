@@ -1,48 +1,51 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sekolah;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class SekolahController extends Controller
 {
-    public function edit($id)
+    /**
+     * Tampilkan form tambah sekolah
+     */
+    public function create()
     {
-        $sekolah = Sekolah::findOrFail($id);
-        $kepsek = User::where('sekolah_id', $id)->where('role', 'kepsek')->first();
-
-        return view('superadmin.sekolah.edit', compact('sekolah', 'kepsek'));
+        return view('superadmin.sekolah.create');
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Simpan data sekolah baru ke database
+     */
+    public function store(Request $request)
     {
-        $request->validate([
-            'nama_sekolah'   => 'required|string|max:255',
-            'npsn'           => 'required|string|max:50',
-            'alamat_sekolah' => 'nullable|string',
+        $validatedData = $request->validate([
+            'npsn'          => 'required|numeric|unique:sekolahs,npsn',
+            'nama_sekolah'  => 'required|string|max:255',
+            'jenjang'       => 'required|in:SD,SMP,SMA,SMK',
+            'status'        => 'required|in:Negeri,Swasta',
+            'alamat'        => 'required|string',
+            'desa_kelurahan'=> 'nullable|string|max:100',
+            'kecamatan'     => 'nullable|string|max:100',
+            'kabupaten_kota'=> 'nullable|string|max:100',
+            'provinsi'      => 'nullable|string|max:100',
+            'nama_kepsek'   => 'nullable|string|max:255',
+            'nip_kepsek'    => 'nullable|string|max:50',
+            'telepon'       => 'nullable|string|max:20',
+            'email'         => 'nullable|email|max:255',
+        ], [
+            'npsn.required'      => 'NPSN wajib diisi.',
+            'npsn.unique'        => 'NPSN sudah terdaftar di sistem.',
+            'nama_sekolah.required' => 'Nama sekolah wajib diisi.',
+            'jenjang.required'   => 'Pilih jenjang sekolah.',
+            'status.required'    => 'Pilih status sekolah.',
+            'alamat.required'    => 'Alamat sekolah wajib diisi.',
         ]);
 
-        $sekolah = Sekolah::findOrFail($id);
-        $sekolah->update([
-            'nama_sekolah'   => $request->nama_sekolah,
-            'npsn'           => $request->npsn,
-            'alamat_sekolah' => $request->alamat_sekolah,
-        ]);
+        Sekolah::create($validatedData);
 
-        return redirect()->route('superadmin.dashboard')->with('success', 'Data sekolah berhasil diperbarui!');
-    }
-
-    public function destroy($id)
-    {
-        $sekolah = Sekolah::findOrFail($id);
-        
-        // Hapus user yang terhubung ke sekolah ini
-        User::where('sekolah_id', $id)->delete();
-        $sekolah->delete();
-
-        return redirect()->route('superadmin.dashboard')->with('success', 'Sekolah dan data terkait berhasil dihapus!');
+        return redirect()->back()->with('success', 'Data sekolah berhasil ditambahkan!');
     }
 }

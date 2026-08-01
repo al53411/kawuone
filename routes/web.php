@@ -62,6 +62,10 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperadminDashboardController::class, 'index'])->name('dashboard');
 
+    // Route Tambah Sekolah oleh Superadmin (BARU DITAMBAHKAN)
+    Route::get('/sekolah/create', [AdminSekolahController::class, 'create'])->name('sekolah.create');
+    Route::post('/sekolah', [AdminSekolahController::class, 'store'])->name('sekolah.store');
+
     // Route Tambah Kepsek oleh Superadmin
     Route::get('/kepsek/create', [AdminKepalaSekolahController::class, 'create'])->name('kepsek.create');
     Route::post('/kepsek', [AdminKepalaSekolahController::class, 'store'])->name('kepsek.store');
