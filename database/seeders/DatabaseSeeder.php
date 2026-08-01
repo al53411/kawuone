@@ -2,9 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,18 +11,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Membuat 1 Akun Super Admin Utama
-        User::create([
-            // 'sekolah_id' => null, // Super Admin tidak terikat ke satu sekolah khusus
-            'name'     => 'Super Administrator',
-            'email'    => 'superadmin@gmail.com',
-            'role'     => 'admin', // Role admin
-            'password' => Hash::make('password123'), // Password admin
-        ]);
-
-        // 2. Memanggil Seeder Guru (otomatis buat data guru + akun login NIP)
+        // Panggil UserSeeder dan seeder lainnya di sini
         $this->call([
+            UserSeeder::class,
             GuruSeeder::class,
+            KelasSeeder::class,
+            SiswaSeeder::class,
         ]);
     }
 }
