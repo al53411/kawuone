@@ -5,60 +5,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Superadmin Dashboard')</title>
+    
+    <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* 1. Kotak Data & Tabel Solid Flat */
+        .flat-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+        }
+
+        /* 2. Kolom Input Form Flat Sempurna */
+        .flat-input {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            outline: none;
+            transition: border-color 0.15s ease-in-out;
+        }
+
+        .flat-input:focus {
+            background-color: #ffffff;
+            border-color: #10b981;
+        }
+
+        /* Scrollbar Custom Flat */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 0px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
-
-<style>
-/* 1. Kotak Data & Tabel Solid Flat */
-.flat-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-}
-
-/* 2. Kolom Input Form Flat Sempurna */
-.flat-input {
-    background-color: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #1e293b;
-    outline: none;
-    transition: border-color 0.15s ease-in-out;
-}
-
-.flat-input:focus {
-    background-color: #ffffff;
-    border-color: #10b981;
-}
-
-/* Scrollbar Flat */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 0px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-</style>
 
 <body class="bg-slate-100 font-sans antialiased text-slate-800">
 
     <div class="flex h-screen overflow-hidden relative">
 
-        <!-- SIDEBAR -->
-        <div id="sidebar"
+        <!-- ================= SIDEBAR ================= -->
+        <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out">
 
             <!-- Header Sidebar Superadmin -->
@@ -86,7 +88,7 @@
                     <span class="text-sm">Dashboard Pusat</span>
                 </a>
 
-                <!-- Dropdown Manajemen Sekolah & Kepsek -->
+                <!-- Dropdown Kelola Sekolah & Kepsek -->
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-sekolah', 'arrow-sekolah')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none">
@@ -95,10 +97,25 @@
                             <span class="font-medium text-sm">Kelola Sekolah</span>
                         </div>
                         <i id="arrow-sekolah"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('superadmin.kepsek.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ (request()->routeIs('superadmin.kepsek.*') || request()->routeIs('superadmin.sekolah.*')) ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-sekolah" class="{{ request()->routeIs('superadmin.kepsek.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <!-- Submenu Dropdown -->
+                    <div id="dropdown-sekolah" class="{{ (request()->routeIs('superadmin.kepsek.*') || request()->routeIs('superadmin.sekolah.*')) ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                        
+                        <!-- Menu 1: View / Lihat Daftar Semua Sekolah -->
+                        <a href="{{ route('superadmin.sekolah.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.sekolah.index') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-list-ul text-xs mr-2"></i> Daftar Semua Sekolah
+                        </a>
+
+                        <!-- Menu 2: Tambah Sekolah Baru -->
+                        <a href="{{ route('superadmin.sekolah.create') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.sekolah.create') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-plus text-xs mr-2"></i> Tambah Sekolah
+                        </a>
+
+                        <!-- Menu 3: Tambah Kepala Sekolah / Akun -->
                         <a href="{{ route('superadmin.kepsek.create') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.kepsek.create') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-user-plus text-xs mr-2"></i> Tambah Kepsek / Akun
@@ -121,7 +138,6 @@
                     <i class="fa-solid fa-chalkboard-user text-slate-400"></i>
                     <span class="text-sm">Lihat Mode Guru</span>
                 </a>
-
             </div>
 
             <!-- Footer Sidebar (Tombol Logout) -->
@@ -136,13 +152,13 @@
                 </form>
             </div>
 
-        </div>
+        </aside>
 
         <!-- Sidebar Overlay (Mobile) -->
         <div id="sidebar-overlay" onclick="toggleSidebar()"
             class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-20 hidden md:hidden"></div>
 
-        <!-- MAIN CONTENT AREA -->
+        <!-- ================= MAIN CONTENT AREA ================= -->
         <div class="flex-1 flex flex-col overflow-hidden">
 
             <!-- Navbar Top -->
@@ -166,59 +182,57 @@
                         <span class="text-sm font-semibold text-slate-700 block leading-tight">{{ Auth::user()->name ?? 'Super Admin' }}</span>
                         <span class="text-[11px] text-slate-400">System Administrator</span>
                     </div>
-                    <div
-                        class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-emerald-100">
+                    <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-emerald-100">
                         {{ strtoupper(substr(Auth::user()->name ?? 'S', 0, 1)) }}
                     </div>
                 </div>
             </header>
 
-            <!-- Content Area -->
+            <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto p-6 md:p-8">
                 @yield('content')
             </main>
+
         </div>
 
     </div>
 
+    <!-- Javascript Handlers -->
     <script>
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
 
-    // 1. Fungsi Buka / Tutup Sidebar
-    function toggleSidebar() {
-        if (sidebar.classList.contains('-translate-x-full')) {
-            sidebar.classList.remove('-translate-x-full');
-            overlay.classList.remove('hidden');
-        } else {
-            sidebar.classList.add('-translate-x-full');
-            overlay.classList.add('hidden');
+        // 1. Fungsi Buka / Tutup Sidebar (Mobile)
+        function toggleSidebar() {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
         }
-    }
 
-    // 2. Fungsi Buka / Tutup Dropdown Menu
-    function toggleDropdown(id, arrowId) {
-        const dropdown = document.getElementById(id);
-        const arrow = document.getElementById(arrowId);
+        // 2. Fungsi Buka / Tutup Dropdown Menu
+        function toggleDropdown(id, arrowId) {
+            const dropdown = document.getElementById(id);
+            const arrow = document.getElementById(arrowId);
 
-        if (dropdown.classList.contains('hidden')) {
-            dropdown.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
-        } else {
-            dropdown.classList.add('hidden');
-            arrow.classList.remove('rotate-180');
+            if (dropdown && arrow) {
+                dropdown.classList.toggle('hidden');
+                arrow.classList.toggle('rotate-180');
+            }
         }
-    }
 
-    // 3. Resizing handler
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 768) {
-            sidebar.classList.remove('-translate-x-full');
-            overlay.classList.add('hidden');
-        } else {
-            sidebar.classList.add('-translate-x-full');
-        }
-    });
+        // 3. Resizing Handler (Mobile Reset)
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.add('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
     </script>
 </body>
 

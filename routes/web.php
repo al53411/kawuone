@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 
 // Import Controller Superadmin / Admin Pusat
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
+use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController; // <-- Tambahkan ini
 
 // Import Controller Admin Sekolah
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -24,7 +25,6 @@ use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 
 // Redirect Halaman Utama langsung ke Login
 Route::get('/', function () {
@@ -37,17 +37,14 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
-    // 1. Superadmin
     if ($user->role === 'superadmin') {
         return redirect()->route('superadmin.dashboard');
     } 
     
-    // 2. Admin Sekolah & Kepsek
     if (in_array($user->role, ['admin', 'admin_sekolah', 'kepsek'])) {
         return redirect()->route('admin.dashboard');
     } 
     
-    // 3. Guru
     if ($user->role === 'guru') {
         return redirect()->route('guru.dashboard');
     }
@@ -62,18 +59,12 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperadminDashboardController::class, 'index'])->name('dashboard');
 
-    // Route Tambah Sekolah oleh Superadmin (BARU DITAMBAHKAN)
-    Route::get('/sekolah/create', [AdminSekolahController::class, 'create'])->name('sekolah.create');
-    Route::post('/sekolah', [AdminSekolahController::class, 'store'])->name('sekolah.store');
+    // CRUD Sekolah oleh Superadmin (Menggunakan SuperadminSekolahController)
+    Route::resource('sekolah', SuperadminSekolahController::class);
 
-    // Route Tambah Kepsek oleh Superadmin
+    // CRUD Kepala Sekolah / Akun Sekolah oleh Superadmin
     Route::get('/kepsek/create', [AdminKepalaSekolahController::class, 'create'])->name('kepsek.create');
     Route::post('/kepsek', [AdminKepalaSekolahController::class, 'store'])->name('kepsek.store');
-
-    // Route Edit, Update, & Hapus Sekolah
-    Route::get('/sekolah/{id}/edit', [AdminSekolahController::class, 'edit'])->name('sekolah.edit');
-    Route::put('/sekolah/{id}', [AdminSekolahController::class, 'update'])->name('sekolah.update');
-    Route::delete('/sekolah/{id}', [AdminSekolahController::class, 'destroy'])->name('sekolah.destroy');
 });
 
 
@@ -82,7 +73,6 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 // ==========================================
 Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefix('admin')->name('admin.')->group(function () {
     
-    // Dashboard Admin Sekolah
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Validasi Jurnal oleh Kepala Sekolah / Admin
@@ -93,7 +83,10 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
     Route::resource('absensi', AdminAbsensiController::class);
     Route::resource('guru', AdminGuruController::class);
     Route::resource('kelas', AdminKelasController::class);
+    
+    // Resource Sekolah (Otomatis mencakup admin.sekolah.index, store, update, dll)
     Route::resource('sekolah', AdminSekolahController::class);
+    
     Route::resource('siswa', AdminSiswaController::class);
     Route::resource('jurnal', AdminJurnalController::class);
 
@@ -114,7 +107,7 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     Route::resource('siswa', GuruSiswaController::class);
     
-    // Route Cetak PDF (Harus sebelum Route Resource Jurnal)
+    // Route Cetak PDF
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakPdf'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
 });
@@ -137,7 +130,6 @@ require __DIR__.'/auth.php';
 // ==========================================
 Route::get('/run-migrate', function () {
     try {
-        // Gunakan migrate:fresh bawaan Laravel yang otomatis membersihkan semua tabel
         Artisan::call('migrate:fresh', [
             '--force' => true,
             '--seed'  => true,
