@@ -4,7 +4,8 @@ use App\Http\Controllers\ProfileController;
 
 // Import Controller Superadmin / Admin Pusat
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
-use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController; // <-- Tambahkan ini
+use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController;
+use App\Http\Controllers\Superadmin\UserController;
 
 // Import Controller Admin Sekolah
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -59,12 +60,11 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperadminDashboardController::class, 'index'])->name('dashboard');
 
-    // CRUD Sekolah oleh Superadmin (Menggunakan SuperadminSekolahController)
+    // CRUD Sekolah oleh Superadmin
     Route::resource('sekolah', SuperadminSekolahController::class);
 
-    // CRUD Kepala Sekolah / Akun Sekolah oleh Superadmin
-    Route::get('/kepsek/create', [AdminKepalaSekolahController::class, 'create'])->name('kepsek.create');
-    Route::post('/kepsek', [AdminKepalaSekolahController::class, 'store'])->name('kepsek.store');
+    // CRUD Kepala Sekolah / Management Account oleh Superadmin
+    Route::resource('kepsek', UserController::class);
 });
 
 
@@ -79,18 +79,18 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
     Route::get('/kepala-sekolah/jurnal', [AdminKepalaSekolahController::class, 'indexValidasiJurnal'])->name('kepala-sekolah.jurnal.index');
     Route::put('/kepala-sekolah/jurnal/{id}', [AdminKepalaSekolahController::class, 'updateStatusJurnal'])->name('kepala-sekolah.jurnal.update');
 
+    // Reset Password Guru
+    Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
+
     // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);
     Route::resource('guru', AdminGuruController::class);
     Route::resource('kelas', AdminKelasController::class);
-    
-    // Resource Sekolah (Otomatis mencakup admin.sekolah.index, store, update, dll)
     Route::resource('sekolah', AdminSekolahController::class);
-    
     Route::resource('siswa', AdminSiswaController::class);
     Route::resource('jurnal', AdminJurnalController::class);
 
-    // Resource Kepala Sekolah
+    // Resource Kepala Sekolah (Tingkat Sekolah)
     Route::resource('kepala-sekolah', AdminKepalaSekolahController::class);
 
     // Cetak Absensi Mapel

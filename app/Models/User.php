@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'nip',
         'role',
+        'sekolah_id', // Tambahkan ini agar sekolah_id bisa diisi
         'password',
     ];
 
@@ -47,5 +48,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Relasi ke Model Sekolah
+     */
+    public function sekolah()
+    {
+        return $this->belongsTo(Sekolah::class, 'sekolah_id');
+    }
+
+    /**
+     * Relasi ke Model JurnalGuru
+ */
+    public function jurnals()
+    {
+        return $this->hasMany(JurnalGuru::class, 'guru_id');
     }
 }

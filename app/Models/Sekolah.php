@@ -9,17 +9,26 @@ class Sekolah extends Model
 {
     use HasFactory;
 
-    protected $table = 'sekolahs'; // Menegaskan nama tabel (opsional tapi aman)
+    protected $table = 'sekolahs';
 
     protected $fillable = [
-        'nama_sekolah', 
-        'npsn', 
-        'nama_kepala_sekolah', 
-        'alamat_sekolah'
+        'npsn',
+        'nama_sekolah',
+        'jenjang',
+        'status',
+        'alamat',
+        'kecamatan',
+        'kabupaten_kota',
+        'provinsi',
+        'kode_pos',
+        'email',
+        'telepon',
+        'nama_kepsek',
+        'nip_kepsek',
     ];
 
     /**
-     * Relasi One-to-Many ke model User (Guru, Kepsek, Tendik)
+     * Relasi ke Model User
      */
     public function users()
     {
@@ -27,10 +36,43 @@ class Sekolah extends Model
     }
 
     /**
-     * Relasi khusus untuk mengambil User yang ber-role Kepsek (Opsional, mempermudah query)
+     * Relasi ke Model Guru
      */
-    public function kepsek()
+    public function gurus()
     {
-        return $this->hasOne(User::class, 'sekolah_id')->where('role', 'kepsek');
+        return $this->hasMany(Guru::class, 'sekolah_id');
+    }
+
+    /**
+     * Relasi ke Model Kelas
+     */
+    public function kelases()
+    {
+        return $this->hasMany(Kelas::class, 'sekolah_id');
+    }
+
+    /**
+     * Relasi ke Model Siswa
+     */
+    public function siswas()
+    {
+        return $this->hasMany(Siswa::class, 'sekolah_id');
+    }
+
+    /**
+     * Relasi ke Model Jurnal
+     * (Menghubungkan Sekolah langsung dengan tabel jurnals via sekolah_id)
+        */
+        public function jurnals()
+    {
+        // 'sekolah_id' ada di tabel users, 'user_id' ada di tabel jurnal_gurus
+        return $this->hasManyThrough(
+            JurnalGuru::class, 
+            User::class, 
+            'sekolah_id', // Foreign key di tabel users
+            'user_id',    // Foreign key di tabel jurnal_gurus
+            'id',         // Local key di tabel sekolahs
+            'id'          // Local key di tabel users
+        );
     }
 }

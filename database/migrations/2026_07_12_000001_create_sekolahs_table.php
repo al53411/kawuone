@@ -13,10 +13,19 @@ return new class extends Migration
     {
         Schema::create('sekolahs', function (Blueprint $table) {
             $table->id();
-            $table->string('npsn')->unique(); // Diubah jadi unik agar tidak ada NPSN kembar
+            $table->string('npsn')->unique();
             $table->string('nama_sekolah');
-            $table->string('alamat')->nullable();
+            $table->enum('jenjang', ['SD', 'SMP', 'SMA', 'SMK', 'TK', 'PAUD'])->default('SD');
+            $table->enum('status', ['Negeri', 'Swasta'])->default('Negeri');
+            $table->text('alamat')->nullable();
+            $table->string('kecamatan')->nullable();
+            $table->string('kabupaten_kota')->nullable();
+            $table->string('provinsi')->nullable();
+            $table->string('kode_pos', 10)->nullable();
+            $table->string('email')->nullable();
+            $table->string('telepon')->nullable();
             $table->string('nama_kepsek')->nullable();
+            $table->string('nip_kepsek')->nullable();
             $table->timestamps();
         });
     }

@@ -7,13 +7,14 @@ use App\Models\User;
 use App\Models\Sekolah;
 use App\Models\JurnalGuru;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 
 class KepalaSekolahController extends Controller
 {
     /**
-     * Tampilkan daftar Kepala Sekolah.
+     * Tampilkan daftar Kepala Sekolah (Superadmin).
      */
     public function index()
     {
@@ -26,7 +27,7 @@ class KepalaSekolahController extends Controller
     }
 
     /**
-     * Menampilkan form tambah akun Kepala Sekolah.
+     * Menampilkan form tambah akun Kepala Sekolah (Superadmin).
      */
     public function create()
     {
@@ -38,7 +39,7 @@ class KepalaSekolahController extends Controller
     }
 
     /**
-     * Menyimpan data akun Kepala Sekolah baru ke database.
+     * Menyimpan data akun Kepala Sekolah baru ke database (Superadmin).
      */
     public function store(Request $request)
     {
@@ -83,8 +84,16 @@ class KepalaSekolahController extends Controller
     public function indexValidasiJurnal(Request $request)
     {
         $status = $request->input('status', 'Pending'); 
+        $user   = Auth::user();
 
         $jurnals = JurnalGuru::with(['guru', 'kelas'])
+            // Filter jurnal berdasarkan sekolah tempat Kepala Sekolah bertugas
+            ->when($user && $user->sekolah_id, function ($query) use ($user) {
+                return $query->whereHas('guru', function ($q) use ($user) {
+                    $q->where('sekolah_id', $user->sekolah_id);
+                });
+            })
+            // Filter status validasi
             ->when($status, function ($query, $status) {
                 return $query->where('status_validasi', $status);
             })
@@ -95,23 +104,34 @@ class KepalaSekolahController extends Controller
     }
 
     /**
-     * Mengupdate status validasi jurnal.
+     * Mengupdate status validasi jurnal (Sesuai route updateStatusJurnal).
      */
-    public function update(Request $request, $id)
+    public function updateStatusJurnal(Request $request, $id)
     {
         $request->validate([
             'status_validasi' => 'required|in:Disetujui,Ditolak',
-            'catatan_kepsek'  => $request->status_validasi == 'Ditolak' ? 'required|string|min:5' : 'nullable|string',
+            'catatan_kepsek'  => $request->status_validasi == 'Ditolak' ? 'required|string|min:3' : 'nullable|string',
+        ], [
+            'status_validasi.required' => 'Status validasi wajib dipilih.',
+            'catatan_kepsek.required'  => 'Catatan wajib diisi jika jurnal ditolak.',
         ]);
 
         $jurnal = JurnalGuru::findOrFail($id);
-        
+
         $jurnal->update([
-            'status_validasi' => $request->status_validasi,
-            'catatan_kepsek'  => $request->status_validasi == 'Ditolak' ? $request->catatan_kepsek : null,
-            'tanggal_validasi'=> now(),
+            'status_validasi'  => $request->status_validasi,
+            'catatan_kepsek'   => $request->status_validasi == 'Ditolak' ? $request->catatan_kepsek : null,
+            'tanggal_validasi' => now(),
         ]);
 
         return redirect()->back()->with('success', 'Status validasi jurnal berhasil diperbarui.');
+    }
+
+    /**
+     * Alias method update biasa jika route menggunakan Resource.
+     */
+    public function update(Request $request, $id)
+    {
+        return $this->updateStatusJurnal($request, $id);
     }
 }

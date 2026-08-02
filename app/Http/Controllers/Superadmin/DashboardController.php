@@ -3,31 +3,40 @@
 namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sekolah; // Menggunakan model Sekolah
+use App\Models\Sekolah; 
 use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
-    {
-        // Hitung ringkasan statistik (Role disesuaikan ke 'kepsek')
-        $totalSekolah = Sekolah::count();
-        $totalKepsek  = User::where('role', 'kepsek')->count(); 
-        $totalGuru    = User::where('role', 'guru')->count();
-        $totalTendik  = User::where('role', 'tendik')->count();
+        public function index()
+{
+    $totalSekolah = Sekolah::count();
 
-        // Ambil daftar sekolah beserta akun Kepala Sekolah terkait
-        $sekolahs = Sekolah::with(['users' => function($query) {
-            $query->where('role', 'kepsek');
-        }])->latest()->paginate(10);
+    // Hitung sekolah yang memiliki user/guru dengan jurnal berstatus 'Disetujui'
+    $sekolahValidasi = Sekolah::whereHas('users.jurnals', function ($query) {
+        $query->where('status_validasi', 'Disetujui');
+    })->count();
 
-        return view('superadmin.dashboard', compact(
-            'totalSekolah', 
-            'totalKepsek', 
-            'totalGuru', 
-            'totalTendik', 
-            'sekolahs'
-        ));
-    }
+    // Hitung persentase
+    $persenValidasi = $totalSekolah > 0 
+        ? round(($sekolahValidasi / $totalSekolah) * 100, 1) 
+        : 0;
+
+    $totalKepsek = Sekolah::whereNotNull('nama_kepsek')->where('nama_kepsek', '!=', '')->count();
+    $totalGuru   = User::where('role', 'guru')->count();
+    $totalTendik = User::where('role', 'tendik')->count();
+
+    $sekolahs = Sekolah::with('users')->paginate(10);
+
+    return view('superadmin.dashboard', compact(
+        'totalSekolah',
+        'totalKepsek',
+        'totalGuru',
+        'totalTendik',
+        'persenValidasi',
+        'sekolahValidasi',
+        'sekolahs'
+    ));
+}
 }
