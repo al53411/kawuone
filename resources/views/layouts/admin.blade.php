@@ -67,11 +67,13 @@
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out h-full">
 
-            <!-- Header Sidebar -->
+            <!-- Header Sidebar (PERBAIKAN DI BARIS INI) -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800 shrink-0">
                 <div class="flex items-center space-x-2 truncate">
                     <i class="fa-solid fa-graduation-cap text-2xl text-blue-500 shrink-0"></i>
-                    <span class="text-white font-bold text-base truncate">{{ $profilSekolah->nama_sekolah ?? 'SDN KAWU 1' }}</span>
+                    <span class="text-white font-bold text-base truncate">
+                        {{ Auth::user()->sekolah->nama_sekolah ?? $profilSekolah->nama_sekolah ?? 'Sistem Sekolah' }}
+                    </span>
                 </div>
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white focus:outline-none">
                     <i class="fa-solid fa-xmark text-xl"></i>
@@ -90,19 +92,22 @@
                 </a>
 
                 <!-- Dropdown Master Data -->
-                @php $isAkademikActive = request()->routeIs('admin.sekolah.*', 'admin.siswa.*', 'admin.guru.*', 'admin.kelas.*'); @endphp
+                @php $isAkademikActive = request()->routeIs('admin.sekolah.*', 'admin.siswa.*', 'admin.guru.*',
+                'admin.kelas.*'); @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isAkademikActive ? 'text-white font-medium' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-server w-5 text-center {{ $isAkademikActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-server w-5 text-center {{ $isAkademikActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span class="font-medium text-sm">Master Data</span>
                         </div>
                         <i id="arrow-akademik"
                             class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isAkademikActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-akademik" class="{{ $isAkademikActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-akademik"
+                        class="{{ $isAkademikActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('admin.sekolah.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Profil Sekolah
@@ -128,14 +133,16 @@
                     <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isAdminActive ? 'text-white font-medium' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-folder-open w-5 text-center {{ $isAdminActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-folder-open w-5 text-center {{ $isAdminActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span class="font-medium text-sm">Administrasi</span>
                         </div>
                         <i id="arrow-administrasi"
                             class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isAdminActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-administrasi" class="{{ $isAdminActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-administrasi"
+                        class="{{ $isAdminActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('admin.absensi.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
@@ -153,14 +160,16 @@
                     <button onclick="toggleDropdown('dropdown-surat', 'arrow-surat')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isSuratActive ? 'text-white font-medium' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-envelope w-5 text-center {{ $isSuratActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-envelope w-5 text-center {{ $isSuratActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span class="font-medium text-sm">Surat</span>
                         </div>
                         <i id="arrow-surat"
                             class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isSuratActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-surat" class="{{ $isSuratActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-surat"
+                        class="{{ $isSuratActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="#"
                             class="block py-2 px-3 text-sm rounded-md text-slate-400 hover:text-white transition">
                             <i class="fa-solid fa-envelope-open-text text-xs mr-2"></i> Surat Masuk

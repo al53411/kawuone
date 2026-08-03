@@ -8,7 +8,7 @@
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Manajemen Data Guru</h1>
         <p class="text-gray-500 text-sm mt-1">Kelola seluruh data guru aktif di
-            {{ $profilSekolah->nama_sekolah ?? 'Sekolah' }}.</p>
+            {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.</p>
     </div>
     <a href="{{ route('admin.guru.create') }}"
         class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm transition space-x-2">

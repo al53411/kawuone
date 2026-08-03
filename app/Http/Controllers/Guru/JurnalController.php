@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\JurnalGuru;
 use App\Models\Kelas;
-use App\Models\ProfilSekolah;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -106,10 +106,11 @@ class JurnalController extends Controller
         return redirect()->back()->with('success', 'Jurnal pembelajaran berhasil dihapus.');
     }
 
+   
     /**
      * Cetak rekap jurnal guru menggunakan template Word (.docx)
      */
-    public function cetakPdf(Request $request)
+    public function cetakWord(Request $request)
     {
         $user = Auth::user();
 
@@ -123,27 +124,44 @@ class JurnalController extends Controller
             return redirect()->back()->with('error', 'Tidak ada data jurnal untuk dicetak.');
         }
 
-        // 2. Path File Template Word dan Output
-        $templatePath = storage_path('app/templates/template_rekap.docx');
-        $outputPath = storage_path('app/public/Rekap_Jurnal_' . preg_replace('/[^A-Za-z0-9\-]/', '_', $user->name) . '.docx');
+        // 2. Ambil Data Kepala Sekolah
+        $kepalaSekolah = User::whereIn('role', ['kepala_sekolah', 'kepsek'])->first();
 
-        // Cek keberadaan file template Word
+        // 3. Path File Template Word
+        $templatePath = storage_path('app/templates/template_rekap.docx');
+
         if (!file_exists($templatePath)) {
-            return redirect()->back()->with('error', 'File template Word tidak ditemukan di: storage/app/templates/template_rekap.docx');
+            return redirect()->back()->with('error', 'File template Word tidak ditemukan di: ' . $templatePath);
         }
 
         try {
-            // 3. Inisialisasi PHPWord Template Processor
             $template = new TemplateProcessor($templatePath);
 
-            // 4. Set Variable Header / Profil Guru
+            $jurnalPertama = $jurnals->first();
             Carbon::setLocale('id');
-            $template->setValue('nama_guru', $user->name ?? '-');
-            $template->setValue('nip', $user->nip ?? '-');
-            $template->setValue('bulan', Carbon::now()->translatedFormat('F Y'));
 
-            // 5. Duplikasi Baris Tabel Rekap
+            // Fungsi pembantu untuk membersihkan karakter khusus XML (&, <, >)
+            $clean = function ($text) {
+                return htmlspecialchars($text ?? '-', ENT_QUOTES, 'UTF-8');
+            };
+
+            // 4. Mengisi variabel bagian atas (Header)
+            $template->setValue('mapel_atas', $clean($jurnalPertama->mapel));
+            $template->setValue('kelas_atas', $clean($jurnalPertama->kelas->nama_kelas ?? null));
+            $template->setValue('bulan', Carbon::now()->translatedFormat('F Y'));
+            
+            // 5. Tanda tangan & Identitas Guru
+            $template->setValue('nama_guru', $clean($user->name));
+            $template->setValue('nip', $clean($user->nip));
+
+            // 6. Tanda tangan & Identitas Kepala Sekolah
+            $template->setValue('nama_ks', $clean($kepalaSekolah->name ?? '..................................'));
+            $template->setValue('nip_ks', $clean($kepalaSekolah->nip ?? '..................................'));
+
+            // 7. Duplikasi Baris Tabel Rekap
             $totalData = count($jurnals);
+            
+            // Lakukan clone row berdasarkan tag 'no'
             $template->cloneRow('no', $totalData);
 
             foreach ($jurnals as $index => $item) {
@@ -151,25 +169,32 @@ class JurnalController extends Controller
                 $tglFormatted = Carbon::parse($item->tanggal)->translatedFormat('d M Y');
 
                 $template->setValue("no#{$i}", $i);
-                $template->setValue("hari#{$i}", $item->hari ?? '-');
-                $template->setValue("tanggal#{$i}", $tglFormatted);
-                $template->setValue("jam_ke#{$i}", $item->jam_ke ?? '-');
-                $template->setValue("kelas#{$i}", $item->kelas->nama_kelas ?? '-');
-                $template->setValue("mapel#{$i}", $item->mapel ?? '-');
-                $template->setValue("materi#{$i}", $item->materi ?? '-');
-                $template->setValue("kegiatan#{$i}", $item->kegiatan ?? '-');
-                $template->setValue("keterangan#{$i}", $item->keterangan ?? '-');
-                $template->setValue("status#{$i}", $item->status_validasi ?? 'Pending');
+                $template->setValue("hari#{$i}", $clean($item->hari));
+                $template->setValue("tanggal#{$i}", $clean($tglFormatted));
+                $template->setValue("jam_ke#{$i}", $clean($item->jam_ke));
+                $template->setValue("materi#{$i}", $clean($item->materi));
+                $template->setValue("kegiatan#{$i}", $clean($item->kegiatan));
+                $template->setValue("keterangan#{$i}", $clean($item->keterangan));
             }
 
-            // 6. Simpan File DOCX
-            $template->saveAs($outputPath);
+            // 8. Buat file temp unik
+            $tempFile = tempnam(sys_get_temp_dir(), 'rekap_jurnal_') . '.docx';
+            $template->saveAs($tempFile);
 
-            // 7. Download File DOCX dan hapus setelah terkirim
-            return response()->download($outputPath)->deleteFileAfterSend(true);
+            // 9. Bersihkan buffer output murni
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            $safeName = preg_replace('/[^A-Za-z0-9\-]/', '_', $user->name);
+            $downloadName = 'Rekap_Jurnal_' . $safeName . '.docx';
+
+            return response()->download($tempFile, $downloadName, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal memproses template Word: Pastikan tag ${no} ada di dalam baris tabel Word. Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses template Word: ' . $e->getMessage());
         }
     }
 }

@@ -6,7 +6,7 @@
 @section('content')
 <div class="mb-8">
     <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Manajemen Kelas</h1>
-    <p class="text-sm text-gray-500 mt-1">Tambah dan kelola daftar kelas SDN KAWU 1.</p>
+    <p class="text-sm text-gray-500 mt-1">Tambah dan kelola daftar kelas {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.</p>
 </div>
 
 @if(session('success'))

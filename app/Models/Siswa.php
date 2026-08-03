@@ -11,6 +11,7 @@ class Siswa extends Model
 
     // Tambahkan baris di bawah ini untuk mengizinkan input data
     protected $fillable = [
+        'sekolah_id',
         'nisn',
         'nama_siswa',
         'kelas_id',

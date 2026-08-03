@@ -107,8 +107,8 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     Route::resource('siswa', GuruSiswaController::class);
     
-    // Route Cetak PDF
-    Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakPdf'])->name('jurnal.cetak');
+    // Route Cetak Rekap Word Jurnal (Menggunakan Alias GuruJurnalController)
+    Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
 });
 

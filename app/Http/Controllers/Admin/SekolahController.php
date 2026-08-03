@@ -5,52 +5,76 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Sekolah;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // <-- DITAMBAHKAN UNTUK MENGHILANGKAN ERROR INTELEPHENSE
 
 class SekolahController extends Controller
 {
     /**
      * Tampilkan Profil Sekolah milik user yang sedang login
      */
-    public function index()
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $sekolah = null;
 
-        // 1. Jika Superadmin, ambil data sekolah pertama
-        if ($user->role === 'superadmin') {
-            $sekolah = Sekolah::first();
+        // 1. Jika Superadmin
+        if ($user && $user->role === 'superadmin') {
+            // Mengakomodasi filter query jika superadmin memilih sekolah tertentu (?sekolah_id=1)
+            if ($request->has('sekolah_id')) {
+                $sekolah = Sekolah::find($request->sekolah_id);
+            }
+
+            // Fallback jika tidak ada query param
+            if (!$sekolah) {
+                $sekolah = $user->sekolah_id 
+                    ? Sekolah::find($user->sekolah_id) 
+                    : Sekolah::first();
+            }
         } else {
-            // 2. Jika Admin Sekolah / Kepsek, ambil data berdasarkan sekolah_id user
-            $sekolah = $user->sekolah_id ? Sekolah::find($user->sekolah_id) : null;
+            // 2. Jika Admin Sekolah / Kepsek: Murni ambil berdasarkan sekolah_id miliknya
+            $sekolah = ($user && $user->sekolah_id) ? Sekolah::find($user->sekolah_id) : null;
         }
 
-        // Jika data sekolah belum terikat, ambil sekolah pertama sebagai fallback (ATAU buat dummy/kosong)
+        // 3. Jika data sekolah tetap tidak ditemukan (Database kosong / User belum terikat)
         if (!$sekolah) {
-            // Option A: Ambil sekolah pertama secara otomatis jika sekolah_id user masih null
-            $sekolah = Sekolah::first();
+            $sekolah = new Sekolah(); // Objek kosong agar Blade view tidak error
+            
+            $warningMsg = ($user && $user->role === 'superadmin')
+                ? 'Belum ada data sekolah terdaftar. Silakan tambahkan profil sekolah pertama.'
+                : 'Akun Anda belum terhubung dengan unit sekolah manapun. Silakan hubungi Superadmin.';
 
-            // Option B: Jika di database memang belum ada 1 pun data sekolah
-            if (!$sekolah) {
-                return view('admin.sekolah.index', [
-                    'sekolah' => new Sekolah(), // Kirim objek kosong agar view tidak crash
-                    'warning' => 'Akun Anda belum terhubung dengan unit sekolah. Silakan isi profil sekolah pertama Anda.'
-                ]);
-            }
+            return view('admin.sekolah.index', [
+                'sekolah' => $sekolah,
+                'warning' => $warningMsg
+            ]);
         }
 
         return view('admin.sekolah.index', compact('sekolah'));
     }
 
     /**
-     * Update Data Sekolah
+     * Update / Simpan Data Sekolah
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id = null)
     {
-        // Jika ID bernilai 0 atau tidak ada (buat baru / update)
-        $sekolah = Sekolah::find($id) ?? new Sekolah();
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
-        // A. JIKA USER BUKAN SUPERADMIN (ADMIN SEKOLAH / KEPSEK)
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // A. JIKA USER ADALAH ADMIN SEKOLAH / KEPSEK (BUKAN SUPERADMIN)
         if ($user->role !== 'superadmin') {
+            // Proteksi 1: Wajib memiliki sekolah_id
+            if (!$user->sekolah_id) {
+                return redirect()->back()->with('error', 'Akun Anda tidak terikat dengan sekolah manapun.');
+            }
+
+            // Proteksi 2: Paksa update HANYA pada sekolah miliknya (Abaikan ID dari URL)
+            $sekolah = Sekolah::findOrFail($user->sekolah_id);
+
             $validated = $request->validate([
                 'telepon' => 'nullable|string|max:50',
                 'email'   => 'nullable|email|max:255',
@@ -62,6 +86,8 @@ class SekolahController extends Controller
         }
 
         // B. JIKA USER ADALAH SUPERADMIN
+        $sekolah = ($id && $id != 0) ? Sekolah::find($id) : new Sekolah();
+
         $validated = $request->validate([
             'npsn'           => 'required|numeric|unique:sekolahs,npsn,' . ($sekolah->id ?? 'NULL'),
             'nama_sekolah'   => 'required|string|max:255',
@@ -80,7 +106,7 @@ class SekolahController extends Controller
 
         $sekolah->fill($validated)->save();
 
-        // Hubungkan akun user jika sebelumnya null
+        // Ikat superadmin ke sekolah ini HANYA jika akun superadmin belum punya sekolah_id sama sekali
         if (!$user->sekolah_id) {
             $user->update(['sekolah_id' => $sekolah->id]);
         }

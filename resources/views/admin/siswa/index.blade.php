@@ -8,7 +8,7 @@
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Manajemen Data Siswa</h1>
-        <p class="text-gray-500">Kelola seluruh data siswa aktif {{ $profilSekolah->nama_sekolah }}.</p>
+        <p class="text-gray-500">Kelola seluruh data siswa aktif {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.</p>
     </div>
     <div>
         <a href="{{ route('admin.siswa.create') }}"

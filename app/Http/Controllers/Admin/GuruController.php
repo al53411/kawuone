@@ -6,17 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema; // <-- DITAMBAHKAN AGAR TIDAK ERROR SCHEMA
 
 class GuruController extends Controller
 {
     /**
-     * Menampilkan daftar data Guru
+     * Menampilkan daftar data Guru (Difilter per Sekolah)
      */
     public function index()
     {
-        $gurus = Guru::with('user')->latest()->get();
+        $adminSekolahId = Auth::user()->sekolah_id;
+
+        // Hanya ambil data guru yang terhubung dengan User di sekolah yang sama dengan Admin
+        $gurus = Guru::whereHas('user', function ($query) use ($adminSekolahId) {
+            $query->where('sekolah_id', $adminSekolahId);
+        })->with('user')->latest()->get();
 
         return view('admin.guru.index', compact('gurus'));
     }
@@ -66,16 +73,24 @@ class GuruController extends Controller
             $identifier = $request->filled('nip') ? $request->nip : $request->nik;
             $userEmail  = $identifier . '@sekolah.id';
 
-            // A. Buat Akun User
+            // Ambil sekolah_id milik Admin yang sedang menambahkan
+            $sekolahId = Auth::user()->sekolah_id;
+
+            // A. Buat Akun User (Diikat dengan sekolah_id & NIP)
             $user = User::create([
-                'name'     => $request->nama_lengkap,
-                'email'    => $userEmail,
-                'password' => Hash::make($identifier), // Password default = NIP (atau NIK)
-                'role'     => 'guru',
+                'name'       => $request->nama_lengkap,
+                'nip'        => $request->nip,
+                'email'      => $userEmail,
+                'password'   => Hash::make($identifier), // Password default = NIP (atau NIK)
+                'role'       => 'guru',
+                'sekolah_id' => $sekolahId,
             ]);
 
-            // B. Simpan Data Guru (Tambahkan user_id)
+            // B. Simpan Data Guru
             $validatedData['user_id'] = $user->id;
+            if (Schema::hasColumn('gurus', 'sekolah_id')) {
+                $validatedData['sekolah_id'] = $sekolahId;
+            }
             Guru::create($validatedData);
         });
 
@@ -87,6 +102,9 @@ class GuruController extends Controller
      */
     public function edit(Guru $guru)
     {
+        // Proteksi: Mencegah admin mengakses/mengedit guru milik sekolah lain via URL
+        $this->authorizeSekolah($guru);
+
         return view('admin.guru.edit', compact('guru'));
     }
 
@@ -95,6 +113,9 @@ class GuruController extends Controller
      */
     public function update(Request $request, Guru $guru)
     {
+        // Proteksi Sekolah
+        $this->authorizeSekolah($guru);
+
         // 1. Validasi Input
         $validatedData = $request->validate([
             // Identitas Pribadi (Dukcapil)
@@ -126,12 +147,13 @@ class GuruController extends Controller
             // Update Data Guru
             $guru->update($validatedData);
 
-            // Update nama user jika ada perubahan nama guru
+            // Update nama & NIP user jika ada perubahan
             if ($guru->user) {
                 $identifier = $request->filled('nip') ? $request->nip : $request->nik;
                 
                 $guru->user->update([
                     'name'  => $request->nama_lengkap,
+                    'nip'   => $request->nip,
                     'email' => $identifier . '@sekolah.id',
                 ]);
             }
@@ -145,6 +167,9 @@ class GuruController extends Controller
      */
     public function destroy(Guru $guru)
     {
+        // Proteksi Sekolah
+        $this->authorizeSekolah($guru);
+
         DB::transaction(function () use ($guru) {
             // Hapus Akun User terlebih dahulu jika terhubung
             if ($guru->user) {
@@ -163,6 +188,9 @@ class GuruController extends Controller
      */
     public function resetPassword(Guru $guru)
     {
+        // Proteksi Sekolah
+        $this->authorizeSekolah($guru);
+
         if (!$guru->user) {
             return back()->with('error', 'Akun user untuk guru ini tidak ditemukan.');
         }
@@ -174,6 +202,17 @@ class GuruController extends Controller
         ]);
 
         return back()->with('success', "Password akun {$guru->nama_lengkap} berhasil di-reset ke default ({$identifier}).");
+    }
+
+    /**
+     * Helper Function: Memastikan Guru berasal dari sekolah yang sama dengan Admin yang sedang Login
+     */
+    private function authorizeSekolah(Guru $guru)
+    {
+        $adminSekolahId = Auth::user()->sekolah_id;
+        $guruSekolahId  = $guru->user->sekolah_id ?? $guru->sekolah_id ?? null;
+
+        abort_if($guruSekolahId !== $adminSekolahId, 403, 'Anda tidak memiliki akses untuk mengelola data guru dari sekolah lain.');
     }
 
     /**
