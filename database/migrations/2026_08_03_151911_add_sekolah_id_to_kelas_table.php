@@ -6,23 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('kelas', function (Blueprint $table) {
-            //
+            // Cek apakah kolomnya belum ada, baru tambahkan
+            if (!Schema::hasColumn('kelas', 'sekolah_id')) {
+                $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->onDelete('cascade');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('kelas', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('kelas', 'sekolah_id')) {
+                $table->dropColumn('sekolah_id');
+            }
         });
     }
 };
