@@ -104,11 +104,79 @@
             </div>
         </div>
 
-        <!-- SECTION 2: STATUS KEPEGAWAIAN (BKN) -->
+        <!-- SECTION 2: TUGAS MENGAJAR & JABATAN -->
+        <div>
+            <div class="flex items-center space-x-2 mb-3 sm:mb-4">
+                <span class="w-2 sm:w-2.5 h-5 sm:h-6 bg-amber-500 rounded-full inline-block"></span>
+                <h2 class="text-base sm:text-lg font-bold text-gray-800">2. Tugas Utama & Mata Pelajaran</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-4 sm:p-6 rounded-xl border">
+                <!-- Jenis Tugas / Mata Pelajaran Utama -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                        Tugas Mengajar / Guru <span class="text-red-500">*</span>
+                    </label>
+                    <select name="mata_pelajaran"
+                        class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('mata_pelajaran') border-red-500 @enderror"
+                        required>
+                        <option value="">-- Pilih Penugasan Guru --</option>
+                        <optgroup label="Guru Kelas SD">
+                            <option value="Guru Kelas 1"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 1' ? 'selected' : '' }}>
+                                Guru Kelas 1</option>
+                            <option value="Guru Kelas 2"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 2' ? 'selected' : '' }}>
+                                Guru Kelas 2</option>
+                            <option value="Guru Kelas 3"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 3' ? 'selected' : '' }}>
+                                Guru Kelas 3</option>
+                            <option value="Guru Kelas 4"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 4' ? 'selected' : '' }}>
+                                Guru Kelas 4</option>
+                            <option value="Guru Kelas 5"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 5' ? 'selected' : '' }}>
+                                Guru Kelas 5</option>
+                            <option value="Guru Kelas 6"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Guru Kelas 6' ? 'selected' : '' }}>
+                                Guru Kelas 6</option>
+                        </optgroup>
+                        <optgroup label="Guru Mata Pelajaran">
+                            <option value="Pendidikan Agama Islam"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Pendidikan Agama Islam' ? 'selected' : '' }}>
+                                Guru Pendidikan Agama Islam (PAI)</option>
+                            <option value="Pendidikan Agama Kristen"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Pendidikan Agama Kristen' ? 'selected' : '' }}>
+                                Guru Pendidikan Agama Kristen</option>
+                            <option value="PJOK"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'PJOK' ? 'selected' : '' }}>Guru PJOK
+                                / Olahraga</option>
+                            <option value="Bahasa Inggris"
+                                {{ old('mata_pelajaran', $guru->mata_pelajaran) == 'Bahasa Inggris' ? 'selected' : '' }}>
+                                Guru Bahasa Inggris</option>
+                        </optgroup>
+                    </select>
+                    @error('mata_pelajaran') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Jabatan / Tugas Tambahan -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                        Jabatan / Tugas Tambahan
+                    </label>
+                    <input type="text" name="jabatan" value="{{ old('jabatan', $guru->jabatan) }}"
+                        placeholder="Contoh: Guru Ahli Pertama / Wali Kelas 4A / Pembina Pramuka"
+                        class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('jabatan') border-red-500 @enderror">
+                    @error('jabatan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: STATUS KEPEGAWAIAN (BKN) -->
         <div>
             <div class="flex items-center space-x-2 mb-3 sm:mb-4">
                 <span class="w-2 sm:w-2.5 h-5 sm:h-6 bg-green-600 rounded-full inline-block"></span>
-                <h2 class="text-base sm:text-lg font-bold text-gray-800">2. Status Kepegawaian (Database BKN)</h2>
+                <h2 class="text-base sm:text-lg font-bold text-gray-800">3. Status Kepegawaian (Database BKN)</h2>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-4 sm:p-6 rounded-xl border">
@@ -130,11 +198,11 @@
                     <select name="status_kepegawaian"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('status_kepegawaian') border-red-500 @enderror"
                         required>
-                        <option value="PPPK"
-                            {{ old('status_kepegawaian', $guru->status_kepegawaian) == 'PPPK' ? 'selected' : '' }}>PPPK
-                        </option>
                         <option value="PNS"
                             {{ old('status_kepegawaian', $guru->status_kepegawaian) == 'PNS' ? 'selected' : '' }}>PNS
+                        </option>
+                        <option value="PPPK"
+                            {{ old('status_kepegawaian', $guru->status_kepegawaian) == 'PPPK' ? 'selected' : '' }}>PPPK
                         </option>
                         <option value="GTT"
                             {{ old('status_kepegawaian', $guru->status_kepegawaian) == 'GTT' ? 'selected' : '' }}>GTT
@@ -154,16 +222,6 @@
                         placeholder="Contoh: III/a atau IX"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('golongan') border-red-500 @enderror">
                     @error('golongan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Jabatan -->
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Jenjang Jabatan
-                        Fungsional</label>
-                    <input type="text" name="jabatan" value="{{ old('jabatan', $guru->jabatan) }}"
-                        placeholder="Contoh: Ahli Pertama / Ahli Muda"
-                        class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('jabatan') border-red-500 @enderror">
-                    @error('jabatan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- TMT SK -->
@@ -197,11 +255,11 @@
             </div>
         </div>
 
-        <!-- SECTION 3: KUALIFIKASI & SERTIFIKASI (DAPODIK) -->
+        <!-- SECTION 4: KUALIFIKASI & SERTIFIKASI (DAPODIK) -->
         <div>
             <div class="flex items-center space-x-2 mb-3 sm:mb-4">
                 <span class="w-2 sm:w-2.5 h-5 sm:h-6 bg-purple-600 rounded-full inline-block"></span>
-                <h2 class="text-base sm:text-lg font-bold text-gray-800">3. Kualifikasi & Sertifikasi (Dapodik)</h2>
+                <h2 class="text-base sm:text-lg font-bold text-gray-800">4. Kualifikasi & Sertifikasi (Dapodik)</h2>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-4 sm:p-6 rounded-xl border">

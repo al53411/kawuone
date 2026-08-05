@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class SiswaController extends Controller
 {
@@ -20,7 +21,6 @@ class SiswaController extends Controller
 
         $query = Siswa::with('kelas');
 
-        // Filter berdasarkan sekolah jika kolom sekolah_id ada di tabel siswas
         if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
             $query->where('sekolah_id', $sekolahId);
         }
@@ -37,7 +37,6 @@ class SiswaController extends Controller
     {
         $sekolahId = Auth::user()?->sekolah_id;
 
-        // Ambil kelas sesuai sekolah jika kolom sekolah_id ada di tabel kelas
         if ($sekolahId && Schema::hasColumn('kelas', 'sekolah_id')) {
             $kelas = Kelas::where('sekolah_id', $sekolahId)->get();
         } else {
@@ -54,23 +53,19 @@ class SiswaController extends Controller
     {
         $sekolahId = Auth::user()?->sekolah_id;
 
-        $rules = [
+        // Validasi Sederhana & Pasti Terkunci di Level Laravel
+        $validated = $request->validate([
             'nama_siswa'    => 'required|string|max:255',
+            'nisn'          => 'required|string|max:20|unique:siswas,nisn',
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
-        ];
+        ], [
+            'nisn.unique'   => 'NISN sudah terdaftar dalam sistem!',
+            'nisn.required' => 'NISN wajib diisi!',
+            'required'      => 'Field ini wajib diisi!',
+        ]);
 
-        // Aturan unik NISN (terikat sekolah jika ada sekolah_id)
-        if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
-            $rules['nisn'] = 'required|max:20|unique:siswas,nisn,NULL,id,sekolah_id,' . $sekolahId;
-        } else {
-            $rules['nisn'] = 'required|max:20|unique:siswas,nisn';
-        }
-
-        $validated = $request->validate($rules);
-
-        // Suntikkan sekolah_id jika kolom tersedia di tabel siswas
         if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
             $validated['sekolah_id'] = $sekolahId;
         }
@@ -134,20 +129,17 @@ class SiswaController extends Controller
         }
         $siswa = $siswaQuery->findOrFail($id);
 
-        $rules = [
+        $validated = $request->validate([
             'nama_siswa'    => 'required|string|max:255',
+            'nisn'          => ['required', 'string', 'max:20', Rule::unique('siswas', 'nisn')->ignore($siswa->id)],
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
-        ];
-
-        if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
-            $rules['nisn'] = 'required|max:20|unique:siswas,nisn,' . $siswa->id . ',id,sekolah_id,' . $sekolahId;
-        } else {
-            $rules['nisn'] = 'required|max:20|unique:siswas,nisn,' . $siswa->id;
-        }
-
-        $validated = $request->validate($rules);
+        ], [
+            'nisn.unique'   => 'NISN sudah digunakan oleh siswa lain!',
+            'nisn.required' => 'NISN wajib diisi!',
+            'required'      => 'Field ini wajib diisi!',
+        ]);
 
         $siswa->update($validated);
 

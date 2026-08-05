@@ -15,15 +15,29 @@ class GuruController extends Controller
 {
     /**
      * Menampilkan daftar data Guru (Difilter per Sekolah)
-     */
-    public function index()
+        */
+    public function index(Request $request)
     {
-        $adminSekolahId = Auth::user()->sekolah_id;
+        $sekolahId = Auth::user()->sekolah_id;
 
-        // Hanya ambil data guru yang terhubung dengan User di sekolah yang sama dengan Admin
-        $gurus = Guru::whereHas('user', function ($query) use ($adminSekolahId) {
-            $query->where('sekolah_id', $adminSekolahId);
-        })->with('user')->latest()->get();
+        $query = Guru::where('sekolah_id', $sekolahId);
+
+        // Fitur Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                ->orWhere('nip', 'like', "%{$search}%")
+                ->orWhere('nik', 'like', "%{$search}%");
+            });
+        }
+
+        // Fitur Filter Status
+        if ($request->filled('status')) {
+            $query->where('status_kepegawaian', $request->status);
+        }
+
+        $gurus = $query->latest()->paginate(10)->withQueryString();
 
         return view('admin.guru.index', compact('gurus'));
     }
@@ -113,53 +127,21 @@ class GuruController extends Controller
      */
     public function update(Request $request, Guru $guru)
     {
-        // Proteksi Sekolah
-        $this->authorizeSekolah($guru);
-
-        // 1. Validasi Input
-        $validatedData = $request->validate([
-            // Identitas Pribadi (Dukcapil)
+        $request->validate([
             'nik'                 => 'required|digits:16|unique:gurus,nik,' . $guru->id,
             'nama_lengkap'        => 'required|string|max:255',
-            'tempat_lahir'        => 'required|string|max:100',
+            'tempat_lahir'        => 'required|string',
             'tanggal_lahir'       => 'required|date',
             'jenis_kelamin'       => 'required|in:L,P',
-            'nama_ibu_kandung'    => 'required|string|max:255',
+            'nama_ibu_kandung'    => 'required|string',
+            'mata_pelajaran'      => 'required|string',
+            'status_kepegawaian'  => 'required|string',
+            'pendidikan_terakhir' => 'required|string',
+        ]);
 
-            // Status Kepegawaian (BKN)
-            'nip'                 => 'nullable|digits:18|unique:gurus,nip,' . $guru->id,
-            'status_kepegawaian'  => 'required|in:PNS,PPPK,GTT,GTY',
-            'golongan'            => 'nullable|string|max:10',
-            'jabatan'             => 'nullable|string|max:100',
-            'tmt_sk'              => 'nullable|date',
-            'mkg_tahun'           => 'nullable|integer|min:0',
-            'mkg_bulan'           => 'nullable|integer|min:0|max:11',
+        $guru->update($request->all());
 
-            // Kualifikasi & Sertifikasi (Dapodik)
-            'pendidikan_terakhir' => 'required|string|max:50',
-            'nuptk'               => 'nullable|digits:16|unique:gurus,nuptk,' . $guru->id,
-            'no_serdik'           => 'nullable|string|max:50',
-            'nrg'                 => 'nullable|string|max:50',
-        ], $this->customErrorMessages());
-
-        // 2. Update Data Guru dan User
-        DB::transaction(function () use ($validatedData, $guru, $request) {
-            // Update Data Guru
-            $guru->update($validatedData);
-
-            // Update nama & NIP user jika ada perubahan
-            if ($guru->user) {
-                $identifier = $request->filled('nip') ? $request->nip : $request->nik;
-                
-                $guru->user->update([
-                    'name'  => $request->nama_lengkap,
-                    'nip'   => $request->nip,
-                    'email' => $identifier . '@sekolah.id',
-                ]);
-            }
-        });
-
-        return redirect()->route('admin.guru.index')->with('success', 'Data Guru berhasil diperbarui.');
+        return redirect()->route('admin.guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }
 
     /**

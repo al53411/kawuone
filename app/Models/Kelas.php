@@ -7,5 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Kelas extends Model
 {
     // Tambahkan baris ini jika belum ada
-    protected $fillable = ['nama_kelas', 'wali_kelas']; 
+    protected $fillable = [
+    'sekolah_id', // <-- Tambahkan baris ini
+    'nama_kelas',
+    'wali_kelas',
+    ]; 
 }
