@@ -128,7 +128,7 @@ class JurnalController extends Controller
         $kepalaSekolah = User::whereIn('role', ['kepala_sekolah', 'kepsek'])->first();
 
         // 3. Path File Template Word
-        $templatePath = storage_path('app/templates/template_rekap.docx');
+        $templatePath = storage_path('recources/templates/template_rekap.docx');
 
         if (!file_exists($templatePath)) {
             return redirect()->back()->with('error', 'File template Word tidak ditemukan di: ' . $templatePath);
