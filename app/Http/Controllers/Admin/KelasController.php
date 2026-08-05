@@ -41,11 +41,53 @@ class KelasController extends Controller
 
         // 3. Simpan data kelas beserta sekolah_id
         Kelas::create([
-            'sekolah_id' => $sekolahId, // <-- Wajib agar terhubung ke sekolah
+            'sekolah_id' => $sekolahId,
             'nama_kelas' => $request->nama_kelas,
             'wali_kelas' => $request->wali_kelas,
         ]);
 
         return redirect()->back()->with('success', 'Kelas baru berhasil ditambahkan!');
+    }
+
+    // 4. Update Data Kelas
+    public function update(Request $request, $id)
+    {
+        $sekolahId = Auth::user()->sekolah_id;
+
+        // Pastikan kelas yang diedit milik sekolah admin yang sedang login
+        $kelas = Kelas::where('sekolah_id', $sekolahId)->findOrFail($id);
+
+        $request->validate([
+            'nama_kelas' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('kelas', 'nama_kelas')
+                    ->where(function ($query) use ($sekolahId) {
+                        return $query->where('sekolah_id', $sekolahId);
+                    })
+                    ->ignore($kelas->id), // Abaikan id kelas ini agar tidak terkena error duplicate saat update
+            ],
+            'wali_kelas' => 'required|string',
+        ]);
+
+        $kelas->update([
+            'nama_kelas' => $request->nama_kelas,
+            'wali_kelas' => $request->wali_kelas,
+        ]);
+
+        return redirect()->back()->with('success', 'Data kelas berhasil diperbarui!');
+    }
+
+    // 5. Hapus Data Kelas
+    public function destroy($id)
+    {
+        $sekolahId = Auth::user()->sekolah_id;
+
+        // Pastikan kelas yang dihapus milik sekolah admin yang sedang login
+        $kelas = Kelas::where('sekolah_id', $sekolahId)->findOrFail($id);
+        $kelas->delete();
+
+        return redirect()->back()->with('success', 'Kelas berhasil dihapus!');
     }
 }

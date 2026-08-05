@@ -12,13 +12,12 @@ return new class extends Migration
     public function up(): void 
     {
         Schema::create('kelas', function (Blueprint $table) {
-            $table->id();
-            // Menambahkan foreign key sekolah_id langsung di pembuatan tabel
-            $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->cascadeOnDelete();
-            $table->string('nama_kelas'); // Contoh: X-RPL, XI-TKJ
-            $table->string('wali_kelas')->nullable();
-            $table->timestamps();
-        });
+        $table->id();
+        $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->onDelete('cascade');
+        $table->string('nama_kelas');
+        $table->string('wali_kelas')->nullable();
+        $table->timestamps();
+    });
     }
 
     /**
