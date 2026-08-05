@@ -9,9 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
+    public function up(): void 
+    {
         Schema::create('kelas', function (Blueprint $table) {
             $table->id();
+            // Menambahkan foreign key sekolah_id langsung di pembuatan tabel
+            $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->cascadeOnDelete();
             $table->string('nama_kelas'); // Contoh: X-RPL, XI-TKJ
             $table->string('wali_kelas')->nullable();
             $table->timestamps();
