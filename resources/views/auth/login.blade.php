@@ -21,6 +21,20 @@
 <body
     class="bg-gradient-to-br from-slate-100 via-indigo-100/40 to-slate-200 min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans">
 
+    <!-- ================= SPLASH SCREEN START ================= -->
+    <div id="splash-screen"
+        class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md transition-opacity duration-500 text-white">
+        <div class="flex flex-col items-center animate-pulse">
+            <!-- Logo Sekolah / App -->
+            <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-20 h-20 mb-4 object-contain">
+
+            <!-- App Name & Loading Spinner -->
+            <h2 class="text-2xl font-bold tracking-wider mb-3">ADkwOne</h2>
+            <div class="w-8 h-8 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    </div>
+    <!-- ================= SPLASH SCREEN END ================= -->
+
     <!-- Efek Background Dekoratif -->
     <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl pointer-events-none">
@@ -60,7 +74,6 @@
             <div>
                 <label for="login"
                     class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Email / NIP</label>
-                <!-- name dan old disesuaikan ke "login" agar cocok dengan Controller -->
                 <input type="text" id="login" name="login" value="{{ old('login') }}" required autofocus
                     autocomplete="username"
                     class="w-full px-4 py-3 bg-white/50 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white/80 transition-all text-sm text-slate-800"
@@ -95,6 +108,30 @@
         </form>
 
     </div>
+
+    <!-- Script Kontrol Splash Screen -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const splash = document.getElementById('splash-screen');
+
+        // Cek apakah splash screen sudah pernah ditampilkan di sesi browser ini
+        if (sessionStorage.getItem('splash_login_shown')) {
+            if (splash) splash.style.display = 'none';
+        } else {
+            window.addEventListener('load', function() {
+                if (splash) {
+                    setTimeout(() => {
+                        splash.style.opacity = '0';
+                        setTimeout(() => {
+                            splash.style.display = 'none';
+                            sessionStorage.setItem('splash_login_shown', 'true');
+                        }, 500);
+                    }, 800); // Tampil singkat ~0.4 detik lalu fade out
+                }
+            });
+        }
+    });
+    </script>
 </body>
 
 </html>
