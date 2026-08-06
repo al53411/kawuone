@@ -33,32 +33,37 @@ class GuruSiswaController extends Controller
             return view('guru.siswa.index', compact('siswas'));
         }
 
-        // 3. Ambil ID Guru (Cek apakah user terhubung ke Model Guru atau langsung)
+        // 3. Tentukan ID Guru
         $guruId = $user->guru_id;
         if (!$guruId && class_exists(Guru::class)) {
             $guruId = Guru::where('user_id', $user->id)->value('id');
         }
         $guruId = $guruId ?? $user->id;
 
-        // 4. Cari kelas yang diampu/di-wali-kan oleh guru ini
-        // (Mendukung role 'guru', 'guru_kelas', maupun 'wali_kelas')
-        $kelasDiampu = Kelas::where('guru_id', $guruId)->pluck('id');
-
-        // Jika guru ini terdaftar sebagai wali kelas / guru kelas
-        if ($kelasDiampu->isNotEmpty()) {
-            // Filter siswa HANYA dari kelas yang diampu
-            $query->whereIn('kelas_id', $kelasDiampu);
+        // 4. Cari kelas diampu dengan mengecek nama kolom yang ADA di tabel 'kelas'
+        $kelasQuery = Kelas::query();
+        
+        if (Schema::hasColumn('kelas', 'guru_id')) {
+            $kelasQuery->where('guru_id', $guruId);
+        } elseif (Schema::hasColumn('kelas', 'user_id')) {
+            $kelasQuery->where('user_id', $user->id);
+        } elseif (Schema::hasColumn('kelas', 'wali_kelas_id')) {
+            $kelasQuery->where('wali_kelas_id', $guruId);
         } else {
-            // JIKA BUKAN WALI KELAS ATAU BELUM DIPLOT KELAS:
-            // Cek jika di tabel users ada kolom 'kelas_id' langsung
-            if (!empty($user->kelas_id)) {
-                $query->where('kelas_id', $user->kelas_id);
-            } 
-            // Jika role-nya murni 'guru' biasa dan BUKAN guru_mapel,
-            // kembalikan data kosong agar tidak melihat siswa kelas lain
-            elseif (in_array($user->role, ['guru', 'guru_kelas', 'wali_kelas'])) {
-                $query->whereRaw('1 = 0'); // Trik me-return query kosong dengan aman
-            }
+            // Jika tidak ada kolom relasi guru di kelas, fallback ke user->kelas_id
+            $kelasQuery->whereRaw('1 = 0');
+        }
+
+        $kelasDiampu = $kelasQuery->pluck('id');
+
+        // 5. Filter Siswa berdasarkan kelas
+        if ($kelasDiampu->isNotEmpty()) {
+            $query->whereIn('kelas_id', $kelasDiampu);
+        } elseif (!empty($user->kelas_id)) {
+            $query->where('kelas_id', $user->kelas_id);
+        } else {
+            // Jika guru belum diplot ke kelas manapun
+            $query->whereRaw('1 = 0');
         }
 
         $siswas = $query->latest()->get();
@@ -76,12 +81,10 @@ class GuruSiswaController extends Controller
 
         $query = Siswa::with('kelas');
 
-        // Proteksi: Pastikan hanya bisa lihat siswa di sekolah yang sama
         if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
             $query->where('sekolah_id', $sekolahId);
         }
 
-        // Jika bukan superadmin, proteksi berdasarkan kelas diampu
         if ($user->role !== 'superadmin') {
             $guruId = $user->guru_id;
             if (!$guruId && class_exists(Guru::class)) {
@@ -89,7 +92,18 @@ class GuruSiswaController extends Controller
             }
             $guruId = $guruId ?? $user->id;
 
-            $kelasDiampu = Kelas::where('guru_id', $guruId)->pluck('id');
+            $kelasQuery = Kelas::query();
+            if (Schema::hasColumn('kelas', 'guru_id')) {
+                $kelasQuery->where('guru_id', $guruId);
+            } elseif (Schema::hasColumn('kelas', 'user_id')) {
+                $kelasQuery->where('user_id', $user->id);
+            } elseif (Schema::hasColumn('kelas', 'wali_kelas_id')) {
+                $kelasQuery->where('wali_kelas_id', $guruId);
+            } else {
+                $kelasQuery->whereRaw('1 = 0');
+            }
+
+            $kelasDiampu = $kelasQuery->pluck('id');
 
             if ($kelasDiampu->isNotEmpty()) {
                 $query->whereIn('kelas_id', $kelasDiampu);
