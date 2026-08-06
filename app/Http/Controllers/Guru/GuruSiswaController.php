@@ -22,12 +22,12 @@ class GuruSiswaController extends Controller
 
         $query = Siswa::with('kelas');
 
-        // 1. Filter berdasarkan sekolah guru yang login
+        // 1. Filter Wajib: Berdasarkan Sekolah dari User yang Login
         if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
             $query->where('sekolah_id', $sekolahId);
         }
 
-        // 2. Jika Superadmin, izinkan lihat semua siswa
+        // 2. Jika Superadmin, Tampilkan Semua Data
         if ($user->role === 'superadmin') {
             $siswas = $query->latest()->get();
             return view('guru.siswa.index', compact('siswas'));
@@ -40,30 +40,36 @@ class GuruSiswaController extends Controller
         }
         $guruId = $guruId ?? $user->id;
 
-        // 4. Cari kelas diampu dengan mengecek nama kolom yang ADA di tabel 'kelas'
+        // 4. Deteksi Nama Tabel Kelas yang Aktif (Mencegah Mismatch 'kelas' vs 'kelases')
+        $tableName = (new Kelas)->getTable(); // Otomatis mendapatkan nama tabel dari Model Eloquent
+
+        // 5. Cari Kelas yang Diampu
         $kelasQuery = Kelas::query();
-        
-        if (Schema::hasColumn('kelas', 'guru_id')) {
+        $hasRelation = false;
+
+        if (Schema::hasColumn($tableName, 'guru_id')) {
             $kelasQuery->where('guru_id', $guruId);
-        } elseif (Schema::hasColumn('kelas', 'user_id')) {
+            $hasRelation = true;
+        } elseif (Schema::hasColumn($tableName, 'user_id')) {
             $kelasQuery->where('user_id', $user->id);
-        } elseif (Schema::hasColumn('kelas', 'wali_kelas_id')) {
+            $hasRelation = true;
+        } elseif (Schema::hasColumn($tableName, 'wali_kelas_id')) {
             $kelasQuery->where('wali_kelas_id', $guruId);
-        } else {
-            // Jika tidak ada kolom relasi guru di kelas, fallback ke user->kelas_id
-            $kelasQuery->whereRaw('1 = 0');
+            $hasRelation = true;
         }
 
-        $kelasDiampu = $kelasQuery->pluck('id');
+        $kelasDiampu = $hasRelation ? $kelasQuery->pluck('id') : collect();
 
-        // 5. Filter Siswa berdasarkan kelas
+        // 6. Filter Siswa Berdasarkan Kelas (dengan Fallback yang Aman)
         if ($kelasDiampu->isNotEmpty()) {
+            // Wali Kelas: Tampilkan hanya siswa di kelas yang diampu
             $query->whereIn('kelas_id', $kelasDiampu);
         } elseif (!empty($user->kelas_id)) {
+            // Jika kelas terikat langsung di user
             $query->where('kelas_id', $user->kelas_id);
         } else {
-            // Jika guru belum diplot ke kelas manapun
-            $query->whereRaw('1 = 0');
+            // FALLBACK: Jika Guru Mapel / Belum Diplot Wali Kelas
+            // Sistem tetap menampilkan data siswa di sekolah tersebut tanpa filter kelas_id
         }
 
         $siswas = $query->latest()->get();
@@ -92,18 +98,22 @@ class GuruSiswaController extends Controller
             }
             $guruId = $guruId ?? $user->id;
 
+            $tableName = (new Kelas)->getTable();
             $kelasQuery = Kelas::query();
-            if (Schema::hasColumn('kelas', 'guru_id')) {
+            $hasRelation = false;
+
+            if (Schema::hasColumn($tableName, 'guru_id')) {
                 $kelasQuery->where('guru_id', $guruId);
-            } elseif (Schema::hasColumn('kelas', 'user_id')) {
+                $hasRelation = true;
+            } elseif (Schema::hasColumn($tableName, 'user_id')) {
                 $kelasQuery->where('user_id', $user->id);
-            } elseif (Schema::hasColumn('kelas', 'wali_kelas_id')) {
+                $hasRelation = true;
+            } elseif (Schema::hasColumn($tableName, 'wali_kelas_id')) {
                 $kelasQuery->where('wali_kelas_id', $guruId);
-            } else {
-                $kelasQuery->whereRaw('1 = 0');
+                $hasRelation = true;
             }
 
-            $kelasDiampu = $kelasQuery->pluck('id');
+            $kelasDiampu = $hasRelation ? $kelasQuery->pluck('id') : collect();
 
             if ($kelasDiampu->isNotEmpty()) {
                 $query->whereIn('kelas_id', $kelasDiampu);
