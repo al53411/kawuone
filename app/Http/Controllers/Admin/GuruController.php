@@ -5,17 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\User;
+use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema; // <-- DITAMBAHKAN AGAR TIDAK ERROR SCHEMA
+use Illuminate\Support\Facades\Schema;
 
 class GuruController extends Controller
 {
     /**
      * Menampilkan daftar data Guru (Difilter per Sekolah)
-        */
+     */
     public function index(Request $request)
     {
         $sekolahId = Auth::user()->sekolah_id;
@@ -27,17 +28,60 @@ class GuruController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                ->orWhere('nip', 'like', "%{$search}%")
-                ->orWhere('nik', 'like', "%{$search}%");
+                  ->orWhere('nip', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%");
             });
         }
 
-        // Fitur Filter Status
+        // Fitur Filter Status Kepegawaian
         if ($request->filled('status')) {
             $query->where('status_kepegawaian', $request->status);
         }
 
         $gurus = $query->latest()->paginate(10)->withQueryString();
+
+        // --- LOGIKA CEK TUGAS / WALI KELAS / GURU MAPEL ---
+        $sekolahKelas = Kelas::where('sekolah_id', $sekolahId)->get();
+
+        $gurus->getCollection()->transform(function ($guru) use ($sekolahKelas) {
+            // 1. Cek apakah guru bertindak sebagai Guru Mata Pelajaran (berdasarkan jabatan/jenis_guru/mata_pelajaran)
+            $jabatanLower = strtolower($guru->jabatan ?? '');
+            $jenisGuruLower = strtolower($guru->jenis_guru ?? '');
+            
+            $isGuruMapel = str_contains($jabatanLower, 'mapel') || 
+                           str_contains($jabatanLower, 'mata pelajaran') || 
+                           str_contains($jenisGuruLower, 'mapel') || 
+                           !empty($guru->mata_pelajaran);
+
+            // 2. Cari kelas mana saja yang menugaskan guru ini sebagai Wali Kelas
+            $assignedClasses = $sekolahKelas->filter(function ($kelas) use ($guru) {
+                $waliVal = $kelas->wali_kelas ?? null;
+                $guruIdVal = $kelas->guru_id ?? null;
+                $waliIdVal = $kelas->wali_kelas_id ?? null;
+
+                // Cocokkan dengan ID Guru, ID User, atau Nama Guru
+                return in_array($guru->id, [$waliVal, $guruIdVal, $waliIdVal]) ||
+                       in_array($guru->user_id, [$waliVal, $guruIdVal, $waliIdVal]) ||
+                       ($guru->nama_lengkap && $waliVal == $guru->nama_lengkap);
+            });
+
+            // 3. Properti Tambahan untuk dikirim ke Blade View
+            $guru->assigned_kelas = $assignedClasses;
+            $guru->is_guru_mapel = $isGuruMapel;
+
+            if ($isGuruMapel) {
+                $guru->tipe_penugasan = 'guru_mapel';
+                $guru->has_kelas = true; // Dianggap valid agar tidak merah di Blade
+            } elseif ($assignedClasses->isNotEmpty()) {
+                $guru->tipe_penugasan = 'wali_kelas';
+                $guru->has_kelas = true;
+            } else {
+                $guru->tipe_penugasan = 'none';
+                $guru->has_kelas = false; // Akan memicu badge merah "Belum Setting Kelas"
+            }
+
+            return $guru;
+        });
 
         return view('admin.guru.index', compact('gurus'));
     }
@@ -70,6 +114,8 @@ class GuruController extends Controller
             'status_kepegawaian'  => 'required|in:PNS,PPPK,GTT,GTY',
             'golongan'            => 'nullable|string|max:10',
             'jabatan'             => 'nullable|string|max:100',
+            'jenis_guru'          => 'nullable|string|max:50',
+            'mata_pelajaran'      => 'nullable|string|max:100',
             'tmt_sk'              => 'nullable|date',
             'mkg_tahun'           => 'nullable|integer|min:0',
             'mkg_bulan'           => 'nullable|integer|min:0|max:11',
@@ -83,19 +129,17 @@ class GuruController extends Controller
 
         // 2. Simpan Data Guru & Akun User dalam Transaction
         DB::transaction(function () use ($validatedData, $request) {
-            // Gunakan NIP jika ada, jika tidak ada gunakan NIK sebagai identitas login
             $identifier = $request->filled('nip') ? $request->nip : $request->nik;
             $userEmail  = $identifier . '@sekolah.id';
 
-            // Ambil sekolah_id milik Admin yang sedang menambahkan
             $sekolahId = Auth::user()->sekolah_id;
 
-            // A. Buat Akun User (Diikat dengan sekolah_id & NIP)
+            // A. Buat Akun User
             $user = User::create([
                 'name'       => $request->nama_lengkap,
                 'nip'        => $request->nip,
                 'email'      => $userEmail,
-                'password'   => Hash::make($identifier), // Password default = NIP (atau NIK)
+                'password'   => Hash::make($identifier),
                 'role'       => 'guru',
                 'sekolah_id' => $sekolahId,
             ]);
@@ -108,7 +152,8 @@ class GuruController extends Controller
             Guru::create($validatedData);
         });
 
-        return redirect()->route('admin.guru.index')->with('success', 'Data Guru & Akun User login berhasil ditambahkan.');
+        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru berhasil ditambah
+        return redirect()->route('admin.guru.index')->with('success', 'Data Guru & Akun User login berhasil ditambahkan!');
     }
 
     /**
@@ -116,7 +161,6 @@ class GuruController extends Controller
      */
     public function edit(Guru $guru)
     {
-        // Proteksi: Mencegah admin mengakses/mengedit guru milik sekolah lain via URL
         $this->authorizeSekolah($guru);
 
         return view('admin.guru.edit', compact('guru'));
@@ -129,18 +173,28 @@ class GuruController extends Controller
     {
         $request->validate([
             'nik'                 => 'required|digits:16|unique:gurus,nik,' . $guru->id,
+            'nip'                 => 'nullable|digits:18|unique:gurus,nip,' . $guru->id, // ✅ Ditambahkan validasi NIP & pengecualian ID
+            'nuptk'               => 'nullable|digits:16|unique:gurus,nuptk,' . $guru->id,
             'nama_lengkap'        => 'required|string|max:255',
             'tempat_lahir'        => 'required|string',
             'tanggal_lahir'       => 'required|date',
             'jenis_kelamin'       => 'required|in:L,P',
             'nama_ibu_kandung'    => 'required|string',
-            'mata_pelajaran'      => 'required|string',
             'status_kepegawaian'  => 'required|string',
             'pendidikan_terakhir' => 'required|string',
+            'jabatan'             => 'nullable|string',
+            'jenis_guru'          => 'nullable|string',
+            'mata_pelajaran'      => 'nullable|string',
         ]);
 
         $guru->update($request->all());
 
+        // Update nama user jika terikat
+        if ($guru->user) {
+            $guru->user->update(['name' => $request->nama_lengkap]);
+        }
+
+        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru berhasil diperbarui
         return redirect()->route('admin.guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }
 
@@ -149,31 +203,28 @@ class GuruController extends Controller
      */
     public function destroy(Guru $guru)
     {
-        // Proteksi Sekolah
         $this->authorizeSekolah($guru);
 
         DB::transaction(function () use ($guru) {
-            // Hapus Akun User terlebih dahulu jika terhubung
             if ($guru->user) {
                 $guru->user->delete();
             }
-
-            // Hapus Data Guru
             $guru->delete();
         });
 
-        return redirect()->route('admin.guru.index')->with('success', 'Data Guru dan Akun User berhasil dihapus.');
+        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru dan akun user dihapus
+        return redirect()->route('admin.guru.index')->with('success', 'Data Guru dan Akun User berhasil dihapus!');
     }
 
     /**
-     * Fitur Reset Password Akun Guru ke NIP / NIK Default
+     * Fitur Reset Password Akun Guru
      */
     public function resetPassword(Guru $guru)
     {
-        // Proteksi Sekolah
         $this->authorizeSekolah($guru);
 
         if (!$guru->user) {
+            // ✅ BARU: Mengirim pesan flash alert error jika user tidak ditemukan
             return back()->with('error', 'Akun user untuk guru ini tidak ditemukan.');
         }
 
@@ -183,12 +234,10 @@ class GuruController extends Controller
             'password' => Hash::make($identifier),
         ]);
 
+        // ✅ BARU: Mengirim pesan flash alert sukses saat password berhasil direset
         return back()->with('success', "Password akun {$guru->nama_lengkap} berhasil di-reset ke default ({$identifier}).");
     }
 
-    /**
-     * Helper Function: Memastikan Guru berasal dari sekolah yang sama dengan Admin yang sedang Login
-     */
     private function authorizeSekolah(Guru $guru)
     {
         $adminSekolahId = Auth::user()->sekolah_id;
@@ -197,9 +246,6 @@ class GuruController extends Controller
         abort_if($guruSekolahId !== $adminSekolahId, 403, 'Anda tidak memiliki akses untuk mengelola data guru dari sekolah lain.');
     }
 
-    /**
-     * Custom Error Messages
-     */
     private function customErrorMessages()
     {
         return [
@@ -210,7 +256,7 @@ class GuruController extends Controller
             'nip.digits'            => 'NIP harus berjumlah 18 digit angka.',
             'nip.unique'            => 'NIP sudah terdaftar.',
             'nuptk.digits'          => 'NUPTK harus berjumlah 16 digit.',
-            'nuptk.unique'           => 'NUPTK sudah terdaftar.',
+            'nuptk.unique'          => 'NUPTK sudah terdaftar.',
         ];
     }
 }
