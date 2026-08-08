@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Guru Dashboard')</title>
-    
+
     <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -69,10 +69,11 @@
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out">
 
-            <!-- Brand Header -->
+            <!-- Brand Header (LOGO DARI FAVICON) -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800">
                 <div class="flex items-center space-x-3 overflow-hidden">
-                    <i class="fa-solid fa-graduation-cap text-2xl text-blue-500 shrink-0"></i>
+                    <!-- ✅ LOGO FAVICON -->
+                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                     <span class="text-white font-bold text-base truncate">
                         {{ $profilSekolah->nama_sekolah ?? 'SDN Kawu 1' }}
                     </span>

@@ -7,6 +7,7 @@
     <title>@yield('title', 'Admin Dashboard')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 </head>
 
@@ -68,10 +69,11 @@
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out h-full">
 
-            <!-- Header Sidebar (PERBAIKAN DI BARIS INI) -->
+            <!-- Header Sidebar (PERBAIKAN LOGO FAVICON DI SINI) -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800 shrink-0">
-                <div class="flex items-center space-x-2 truncate">
-                    <i class="fa-solid fa-graduation-cap text-2xl text-blue-500 shrink-0"></i>
+                <div class="flex items-center space-x-3 truncate">
+                    <!-- ✅ LOGO AMBIL DARI FAVICON -->
+                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                     <span class="text-white font-bold text-base truncate">
                         {{ Auth::user()->sekolah->nama_sekolah ?? $profilSekolah->nama_sekolah ?? 'Sistem Sekolah' }}
                     </span>
@@ -277,22 +279,26 @@
             sidebar.classList.add('-translate-x-full');
         }
     });
+
+    // 4. Alert Flash Notification
     @if(session('success'))
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: '{{ session('success') }}',
-            showConfirmButton: false,
-            timer: 2000
-        });
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: '{{ session('
+        success ') }}',
+        showConfirmButton: false,
+        timer: 2000
+    });
     @endif
 
     @if(session('error'))
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: '{{ session('error') }}',
-        });
+    Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: '{{ session('
+        error ') }}',
+    });
     @endif
     </script>
 </body>

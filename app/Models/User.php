@@ -59,8 +59,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Relasi ke Model Guru (Penambahan untuk memperbaiki error guru())
+     */
+    public function guru()
+    {
+        return $this->hasOne(Guru::class, 'user_id', 'id');
+    }
+
+    /**
      * Relasi ke Model JurnalGuru
- */
+     */
     public function jurnals()
     {
         return $this->hasMany(JurnalGuru::class, 'guru_id');

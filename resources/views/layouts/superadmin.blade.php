@@ -9,6 +9,7 @@
     <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 
     <style>
@@ -67,7 +68,8 @@
             <!-- Header Sidebar Superadmin -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800 shrink-0">
                 <div class="flex items-center space-x-3">
-                    <i class="fa-solid fa-user-shield text-2xl text-emerald-500"></i>
+                    <!-- ✅ LOGO AMBIL DARI FAVICON -->
+                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                     <div>
                         <span class="text-white font-bold text-base block leading-tight">PANEL UTAMA</span>
                         <span
@@ -241,6 +243,27 @@
             sidebar.classList.add('-translate-x-full');
         }
     });
+
+    // 4. Alert Flash Notification
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: '{{ session('
+        success ') }}',
+        showConfirmButton: false,
+        timer: 2000
+    });
+    @endif
+
+    @if(session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: '{{ session('
+        error ') }}',
+    });
+    @endif
     </script>
 </body>
 
