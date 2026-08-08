@@ -26,6 +26,7 @@ use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\App;
 
 // Redirect Halaman Utama langsung ke Login
 Route::get('/', function () {
@@ -41,11 +42,11 @@ Route::get('/dashboard', function () {
     if ($user->role === 'superadmin') {
         return redirect()->route('superadmin.dashboard');
     } 
-    
+
     if (in_array($user->role, ['admin', 'admin_sekolah', 'kepsek'])) {
         return redirect()->route('admin.dashboard');
     } 
-    
+
     if ($user->role === 'guru') {
         return redirect()->route('guru.dashboard');
     }
@@ -72,15 +73,18 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 // GROUP ROUTE KHUSUS ADMIN SEKOLAH / KEPSEK
 // ==========================================
 Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefix('admin')->name('admin.')->group(function () {
-    
+
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Validasi Jurnal oleh Kepala Sekolah / Admin
-    Route::get('/kepala-sekolah/jurnal', [AdminKepalaSekolahController::class, 'indexValidasiJurnal'])->name('kepala-sekolah.jurnal.index');
-    Route::put('/kepala-sekolah/jurnal/{id}', [AdminKepalaSekolahController::class, 'updateStatusJurnal'])->name('kepala-sekolah.jurnal.update');
+    Route::get('/validasi-jurnal', [AdminKepalaSekolahController::class, 'indexValidasiJurnal'])->name('kepala-sekolah.jurnal.index');
+    Route::put('/validasi-jurnal/{id}', [AdminKepalaSekolahController::class, 'updateStatusJurnal'])->name('kepala-sekolah.jurnal.update');
 
     // Reset Password Guru
     Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
+
+    // Cetak Absensi Mapel
+    Route::get('/cetak-absensi-mapel', [CetakAbsensiMapelController::class, 'index'])->name('cetak-absensi-mapel.index');
 
     // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);
@@ -89,12 +93,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
     Route::resource('sekolah', AdminSekolahController::class);
     Route::resource('siswa', AdminSiswaController::class);
     Route::resource('jurnal', AdminJurnalController::class);
-
-    // Resource Kepala Sekolah (Tingkat Sekolah)
     Route::resource('kepala-sekolah', AdminKepalaSekolahController::class);
-
-    // Cetak Absensi Mapel
-    Route::get('/cetak-absensi-mapel', [CetakAbsensiMapelController::class, 'index'])->name('cetak-absensi-mapel.index');
 });
 
 
@@ -102,12 +101,14 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
 // GROUP ROUTE KHUSUS GURU
 // ==========================================
 Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.')->group(function () {
-    
+
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('siswa', GuruSiswaController::class);
-    
-    // Route Cetak Rekap Word Jurnal (Menggunakan Alias GuruJurnalController)
+    // Rute Siswa (Hanya menyediaka method yang dibutuhkan)
+    Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);
+    Route::resource('kelas', GuruSiswaController::class)->only(['index', 'show']); 
+
+    // Route Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
 });
@@ -129,6 +130,11 @@ require __DIR__.'/auth.php';
 // ROUTE MIGRATION SEMENTARA FOR VERCEL + SUPABASE
 // ==========================================
 Route::get('/run-migrate', function () {
+    // Proteksi mode production
+    if (App::environment('production') && request('key') !== config('app.key')) {
+        abort(403, 'Akses ditolak pada mode production tanpa otorisasi.');
+    }
+
     try {
         Artisan::call('migrate:fresh', [
             '--force' => true,
