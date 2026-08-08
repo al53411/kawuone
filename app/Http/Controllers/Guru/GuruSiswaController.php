@@ -139,17 +139,23 @@ class GuruSiswaController extends Controller
         $kelasQuery = Kelas::query();
         $hasRelation = false;
 
-        if (Schema::hasColumn($tableName, 'wali_kelas')) {
-            $kelasQuery->whereIn('wali_kelas', $possibleIdentifiers);
+      if (Schema::hasColumn($tableName, 'wali_kelas')) {
+            // Cek apakah kolom wali_kelas menyimpan nama (string) atau angka (ID)
+            // Jika isinya nama guru, filter hanya string dari $possibleIdentifiers
+            $stringIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_string($val) && !is_numeric($val));
+            $kelasQuery->whereIn('wali_kelas', $stringIdentifiers);
             $hasRelation = true;
         } elseif (Schema::hasColumn($tableName, 'guru_id')) {
-            $kelasQuery->whereIn('guru_id', $possibleIdentifiers);
+            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
+            $kelasQuery->whereIn('guru_id', $numericIdentifiers);
             $hasRelation = true;
         } elseif (Schema::hasColumn($tableName, 'wali_kelas_id')) {
-            $kelasQuery->whereIn('wali_kelas_id', $possibleIdentifiers);
+            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
+            $kelasQuery->whereIn('wali_kelas_id', $numericIdentifiers);
             $hasRelation = true;
         } elseif (Schema::hasColumn($tableName, 'user_id')) {
-            $kelasQuery->whereIn('user_id', $possibleIdentifiers);
+            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
+            $kelasQuery->whereIn('user_id', $numericIdentifiers);
             $hasRelation = true;
         }
 
