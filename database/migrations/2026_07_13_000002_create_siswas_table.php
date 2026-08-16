@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->onDelete('cascade');
 
             $table->string('nisn')->nullable()->unique();
-            $table->string('nama_lengkap');
+            $table->string('nama_siswa');
             
             // Kolom pendukung yang dibutuhkan oleh controller & form
             $table->enum('jenis_kelamin', ['L', 'P'])->default('L');

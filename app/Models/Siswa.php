@@ -9,19 +9,18 @@ class Siswa extends Model
 {
     use HasFactory;
 
-    // Mengizinkan input data massal sesuai dengan nama kolom database
     protected $fillable = [
         'sekolah_id',
         'user_id',
         'nisn',
-        'nama_lengkap', // <--- DIBETULKAN DARI nama_siswa KE nama_lengkap
+        'nama_siswa', // ✅ WAJIB nama_siswa (sesuai migration & seeder)
         'kelas_id',
         'jenis_kelamin',
         'alamat'
     ];
 
     /**
-     * Relasi ke model Kelas (Siswa milik suatu Kelas)
+     * Relasi ke model Kelas
      */
     public function kelas()
     {
