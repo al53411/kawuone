@@ -70,8 +70,7 @@ class SiswaController extends Controller
 
             $siswas = $query->latest()->get();
 
-            // FALLBACK 2: Jika setelah difilter kelas data siswas masih KOSONG (misal miskonfigurasi ID kelas),
-            // Tampilkan seluruh siswa di sekolah tersebut agar guru tetap bisa input/melihat data.
+            // FALLBACK 2: Jika setelah difilter kelas data siswas masih KOSONG
             if ($siswas->isEmpty() && $sekolahId) {
                 $siswas = Siswa::with('kelas')
                     ->where(function($q) use ($sekolahId) {
@@ -120,13 +119,13 @@ class SiswaController extends Controller
         $sekolahId = $this->getSekolahId();
 
         $validated = $request->validate([
-            'nama_lengkap'  => 'required|string|max:255',
+            'nama_siswa'    => 'required|string|max:255', // ✅ Diubah ke nama_siswa
             'nisn'          => 'required|string|max:20|unique:siswas,nisn',
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
         ], [
-            'nama_lengkap.required' => 'Nama lengkap siswa wajib diisi!',
+            'nama_siswa.required'   => 'Nama siswa wajib diisi!', // ✅ Message disesuaikan
             'nisn.unique'           => 'NISN sudah terdaftar dalam sistem!',
             'nisn.required'         => 'NISN wajib diisi!',
             'kelas_id.required'     => 'Kelas wajib dipilih!',
@@ -134,7 +133,7 @@ class SiswaController extends Controller
         ]);
 
         $data = [
-            'nama_lengkap'  => $validated['nama_lengkap'],
+            'nama_siswa'    => $validated['nama_siswa'], // ✅ Diubah ke nama_siswa
             'nisn'          => $validated['nisn'],
             'kelas_id'      => $validated['kelas_id'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
@@ -205,13 +204,13 @@ class SiswaController extends Controller
         $siswa = $siswaQuery->findOrFail($id);
 
         $validated = $request->validate([
-            'nama_lengkap'  => 'required|string|max:255',
+            'nama_siswa'    => 'required|string|max:255', // ✅ Diubah ke nama_siswa
             'nisn'          => ['required', 'string', 'max:20', Rule::unique('siswas', 'nisn')->ignore($siswa->id)],
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
         ], [
-            'nama_lengkap.required' => 'Nama lengkap siswa wajib diisi!',
+            'nama_siswa.required'   => 'Nama siswa wajib diisi!', // ✅ Message disesuaikan
             'nisn.unique'           => 'NISN sudah digunakan oleh siswa lain!',
             'nisn.required'         => 'NISN wajib diisi!',
             'kelas_id.required'     => 'Kelas wajib dipilih!',
@@ -219,7 +218,7 @@ class SiswaController extends Controller
         ]);
 
         $siswa->update([
-            'nama_lengkap'  => $validated['nama_lengkap'],
+            'nama_siswa'    => $validated['nama_siswa'], // ✅ Diubah ke nama_siswa
             'nisn'          => $validated['nisn'],
             'kelas_id'      => $validated['kelas_id'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
