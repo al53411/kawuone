@@ -135,12 +135,10 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 
-// ==========================================
-// ROUTE MIGRATION SEMENTARA FOR VERCEL + SUPABASE
-// ==========================================
 Route::get('/run-migrate', function () {
-    if (App::environment('production') && request('key') !== config('app.key')) {
-        abort(403, 'Akses ditolak pada mode production tanpa otorisasi.');
+    // Diproteksi dengan passcode sederhana '12345'
+    if (request('key') !== '12345') {
+        abort(403, 'Akses ditolak: Key salah!');
     }
 
     try {
