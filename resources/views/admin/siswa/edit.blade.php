@@ -42,16 +42,16 @@
                     @enderror
                 </div>
 
-                <!-- Nama Lengkap (DIBETULKAN DARI nama_siswa KE nama_lengkap) -->
+                <!-- Nama Siswa (Diselaraskan ke nama_siswa) -->
                 <div>
-                    <label for="nama_lengkap" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                    <label for="nama_siswa" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                         Nama Lengkap <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="nama_lengkap" id="nama_lengkap"
-                        value="{{ old('nama_lengkap', $siswa->nama_lengkap) }}" placeholder="Masukkan nama lengkap siswa"
-                        class="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nama_lengkap') border-red-500 @enderror"
+                    <input type="text" name="nama_siswa" id="nama_siswa"
+                        value="{{ old('nama_siswa', $siswa->nama_siswa) }}" placeholder="Masukkan nama lengkap siswa"
+                        class="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nama_siswa') border-red-500 @enderror"
                         required>
-                    @error('nama_lengkap')
+                    @error('nama_siswa')
                     <p class="text-xs text-red-500 mt-1 flex items-center gap-1">
                         <i class="fa-solid fa-circle-exclamation"></i>{{ $message }}
                     </p>
@@ -119,7 +119,7 @@
             </div>
         </div>
 
-        <!-- BUTTON ACTION (Responsive Mobile-Friendly) -->
+        <!-- BUTTON ACTION -->
         <div class="pt-3 sm:pt-6 border-t flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3">
             <a href="{{ route('admin.siswa.index') }}"
                 class="w-full sm:w-auto text-center px-5 py-2.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-100 transition active:bg-gray-200">

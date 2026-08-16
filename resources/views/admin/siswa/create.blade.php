@@ -9,8 +9,7 @@
     <!-- Header Form -->
     <div class="mb-5 sm:mb-8 border-b pb-3 sm:pb-4">
         <h1 class="text-lg sm:text-2xl font-bold text-gray-900">Tambah Siswa Baru</h1>
-        <p class="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Isi formulir di bawah ini dengan data siswa yang
-            valid.</p>
+        <p class="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Isi formulir di bawah ini dengan data siswa yang valid.</p>
     </div>
 
     <form action="{{ route('admin.siswa.store') }}" method="POST" class="space-y-5 sm:space-y-8">
@@ -40,16 +39,16 @@
                     @enderror
                 </div>
 
-                <!-- Nama Lengkap -->
+                <!-- Nama Siswa (Diperbaiki dari nama_lengkap -> nama_siswa) -->
                 <div>
-                    <label for="nama_lengkap" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                    <label for="nama_siswa" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                         Nama Lengkap <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="nama_lengkap" id="nama_lengkap" value="{{ old('nama_lengkap') }}"
+                    <input type="text" name="nama_siswa" id="nama_siswa" value="{{ old('nama_siswa') }}"
                         placeholder="Masukkan nama lengkap siswa"
-                        class="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nama_lengkap') border-red-500 @enderror"
+                        class="w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nama_siswa') border-red-500 @enderror"
                         required>
-                    @error('nama_lengkap')
+                    @error('nama_siswa')
                     <p class="text-xs text-red-500 mt-1 flex items-center gap-1">
                         <i class="fa-solid fa-circle-exclamation"></i>{{ $message }}
                     </p>

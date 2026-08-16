@@ -49,9 +49,9 @@
                         <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                             {{ $siswa->nisn }}
                         </td>
-                        <!-- DIBETULKAN: Menggunakan nama_lengkap (Bukan nama_siswa lagi) -->
+                        <!-- ✅ DIBETULKAN: Menggunakan nama_siswa (Diselaraskan dengan Supabase) -->
                         <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm font-medium text-gray-900">
-                            {{ $siswa->nama_lengkap ?? '-' }}
+                            {{ $siswa->nama_siswa ?? '-' }}
                         </td>
                         <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                             {{ $siswa->kelas->nama_kelas ?? '-' }}
