@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\JurnalController as AdminJurnalController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\GuruSiswaController;
 use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
+use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController; // ➕ IMPORT ABSENSI GURU
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -72,7 +73,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 // ==========================================
 // GROUP ROUTE KHUSUS ADMIN SEKOLAH / KEPSEK
 // ==========================================
-Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -84,7 +85,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin'])->prefi
     Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
 
     // Cetak Absensi Mapel
-    Route::get('/cetak-absensi-mapel', [CetakAbsensiMapelController::class, 'index'])->name('cetak-absensi-mapel.index');
+    Route::get('/absensi/cetak-mapel', [CetakAbsensiMapelController::class, 'index'])->name('absensi.cetak-mapel');
 
     // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);
@@ -104,9 +105,17 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
 
-    // Rute Siswa (Hanya menyediaka method yang dibutuhkan)
+    // ➕ MODUL ABSENSI SISWA OLEH GURU
+    Route::get('/absensi', [GuruAbsensiController::class, 'index'])->name('absensi.index');
+    Route::post('/absensi', [GuruAbsensiController::class, 'store'])->name('absensi.store');
+    Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
+
+    // Rute Siswa khusus modul Guru
     Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);
-    Route::resource('kelas', GuruSiswaController::class)->only(['index', 'show']); 
+    
+    // Rute Kelas Guru
+    Route::get('/kelas', [GuruSiswaController::class, 'kelasIndex'])->name('kelas.index');
+    Route::get('/kelas/{id}', [GuruSiswaController::class, 'kelasShow'])->name('kelas.show');
 
     // Route Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
@@ -130,7 +139,6 @@ require __DIR__.'/auth.php';
 // ROUTE MIGRATION SEMENTARA FOR VERCEL + SUPABASE
 // ==========================================
 Route::get('/run-migrate', function () {
-    // Proteksi mode production
     if (App::environment('production') && request('key') !== config('app.key')) {
         abort(403, 'Akses ditolak pada mode production tanpa otorisasi.');
     }

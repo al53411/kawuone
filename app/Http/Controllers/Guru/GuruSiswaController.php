@@ -23,20 +23,18 @@ class GuruSiswaController extends Controller
         // 1. Filter berdasarkan Sekolah
         $this->applySekolahFilter($query, $user);
 
-        // 2. Jika Wali Kelas (bukan Guru Mapel & bukan Admin), filter siswa berdasarkan kelas diampunya
+        // 2. Jika bukan Superadmin/Admin, filter kelas berdasarkan hak akses Guru
         if (!$this->isSuperOrAdmin($user)) {
             $kelasDiampu = $this->getKelasDiampuByUser($user);
 
-            if ($kelasDiampu !== null) {
-                // Jika mengampu kelas tertentu, filter siswanya
-                if ($kelasDiampu->isNotEmpty()) {
-                    $query->whereIn('kelas_id', $kelasDiampu);
-                } else {
-                    // Wali Kelas tetapi belum disetting kelasnya -> kosongkan data
-                    $query->whereRaw('1 = 0');
-                }
+            // Jika mengampu kelas tertentu (sebagai Wali Kelas atau Guru Mapel)
+            if ($kelasDiampu !== null && $kelasDiampu->isNotEmpty()) {
+                $query->whereIn('kelas_id', $kelasDiampu);
+            } 
+            // Fallback: Jika belum di-assign ke kelas manapun, tampilkan seluruh siswa di sekolahnya
+            else if ($user?->sekolah_id && Schema::hasColumn('siswas', 'sekolah_id')) {
+                $query->where('sekolah_id', $user->sekolah_id);
             }
-            // Catatan: Jika $kelasDiampu === null, artinya dia Guru Mapel -> tampilkan semua siswa di sekolah tersebut
         }
 
         $siswas = $query->latest()->get();
@@ -55,16 +53,12 @@ class GuruSiswaController extends Controller
         // 1. Filter berdasarkan Sekolah
         $this->applySekolahFilter($query, $user);
 
-        // 2. Batasi Akses jika bukan Admin / Guru Mapel
+        // 2. Batasi Akses jika bukan Admin
         if (!$this->isSuperOrAdmin($user)) {
             $kelasDiampu = $this->getKelasDiampuByUser($user);
 
-            if ($kelasDiampu !== null) {
-                if ($kelasDiampu->isNotEmpty()) {
-                    $query->whereIn('kelas_id', $kelasDiampu);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
+            if ($kelasDiampu !== null && $kelasDiampu->isNotEmpty()) {
+                $query->whereIn('kelas_id', $kelasDiampu);
             }
         }
 
@@ -74,7 +68,7 @@ class GuruSiswaController extends Controller
     }
 
     /* =========================================================================
-     * HELPER METHODS (Private Functions untuk Menghindari Duplikasi Kode)
+     * HELPER METHODS
      * ========================================================================= */
 
     /**
@@ -90,82 +84,48 @@ class GuruSiswaController extends Controller
      */
     private function applySekolahFilter($query, $user): void
     {
-        if ($user?->sekolah_id && Schema::hasColumn('siswas', 'sekolah_id')) {
-            $query->where('sekolah_id', $user->sekolah_id);
+        $sekolahId = $user?->sekolah_id ?? $user?->guru?->sekolah_id;
+
+        if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
+            $query->where(function($q) use ($sekolahId) {
+                $q->where('sekolah_id', $sekolahId)
+                  ->orWhereNull('sekolah_id');
+            });
         }
     }
 
     /**
-     * Mengembalikan Collection ID Kelas yang diampu jika Wali Kelas,
-     * atau mengembalikan NULL jika user adalah Guru Mapel (menandakan akses ke semua kelas).
+     * Mengembalikan Collection ID Kelas yang diampu oleh Guru
+     * Baik dari relasi Wali Kelas MAUPUN tabel pivot `guru_kelas`
      */
     private function getKelasDiampuByUser($user)
     {
-        $userId = $user->id;
-        $userName = $user->name;
-        $guruId = $user->guru_id;
-        $guruName = null;
-        $guruData = null;
+        $guru = $user?->guru;
 
-        // Ambil Profil Guru jika model Guru ada
-        if (class_exists(Guru::class)) {
-            $guruData = Guru::where('user_id', $userId)->orWhere('id', $guruId)->first();
-            if ($guruData) {
-                $guruId = $guruData->id;
-                $guruName = $guruData->nama_guru ?? $guruData->nama ?? $guruData->nama_lengkap ?? null;
-            }
+        // Jika tidak ada profil Guru terikat di user
+        if (!$guru && class_exists(Guru::class)) {
+            $guru = Guru::where('user_id', $user->id)->first();
         }
 
-        // Cek Status Guru Mapel
-        $isGuruMapel = false;
-        if ($guruData) {
-            $jabatanLower = strtolower($guruData->jabatan ?? '');
-            $jenisGuruLower = strtolower($guruData->jenis_guru ?? '');
-
-            $isGuruMapel = str_contains($jabatanLower, 'mapel') ||
-                           str_contains($jabatanLower, 'mata pelajaran') ||
-                           str_contains($jenisGuruLower, 'mapel') ||
-                           !empty($guruData->mata_pelajaran);
+        if (!$guru) {
+            return collect();
         }
 
-        // Jika Guru Mapel -> kembalikan null (bebas lihat semua kelas)
-        if ($isGuruMapel) {
-            return null;
+        $kelasIds = [];
+
+        // 1. Ambil ID Kelas jika dia Wali Kelas (Direct Relationship)
+        $kelasWali = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
+        $kelasIds = array_merge($kelasIds, $kelasWali);
+
+        // 2. Ambil ID Kelas dari Tabel Pivot guru_kelas (Guru Mapel / Pengampu)
+        if (method_exists($guru, 'kelas')) {
+            $kelasPengampu = $guru->kelas()->pluck('kelas.id')->toArray();
+            $kelasIds = array_merge($kelasIds, $kelasPengampu);
         }
 
-        // Jika Wali Kelas -> cari kelas yang diampu
-        $possibleIdentifiers = array_filter([$userId, $guruId, $userName, $guruName]);
-        $tableName = (new Kelas)->getTable();
-        $kelasQuery = Kelas::query();
-        $hasRelation = false;
+        // Hapus duplikasi ID Kelas
+        $kelasIds = array_unique(array_filter($kelasIds));
 
-      if (Schema::hasColumn($tableName, 'wali_kelas')) {
-            // Cek apakah kolom wali_kelas menyimpan nama (string) atau angka (ID)
-            // Jika isinya nama guru, filter hanya string dari $possibleIdentifiers
-            $stringIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_string($val) && !is_numeric($val));
-            $kelasQuery->whereIn('wali_kelas', $stringIdentifiers);
-            $hasRelation = true;
-        } elseif (Schema::hasColumn($tableName, 'guru_id')) {
-            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
-            $kelasQuery->whereIn('guru_id', $numericIdentifiers);
-            $hasRelation = true;
-        } elseif (Schema::hasColumn($tableName, 'wali_kelas_id')) {
-            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
-            $kelasQuery->whereIn('wali_kelas_id', $numericIdentifiers);
-            $hasRelation = true;
-        } elseif (Schema::hasColumn($tableName, 'user_id')) {
-            $numericIdentifiers = array_filter($possibleIdentifiers, fn($val) => is_numeric($val));
-            $kelasQuery->whereIn('user_id', $numericIdentifiers);
-            $hasRelation = true;
-        }
-
-        $kelasDiampu = $hasRelation ? $kelasQuery->pluck('id') : collect();
-
-        // Fallback ke kelas_id langsung di user jika relasi kelas tidak ketemu
-        if ($kelasDiampu->isEmpty() && !empty($user->kelas_id)) {
-            return collect([$user->kelas_id]);
-        }
-
-        return $kelasDiampu;
+        return collect($kelasIds);
     }
 }

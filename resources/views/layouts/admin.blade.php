@@ -9,57 +9,57 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+
+    <style>
+    /* Kotak Data & Tabel Solid Flat */
+    .flat-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+    }
+
+    /* Tombol Dropdown Sidebar Flat */
+    .flat-dropdown {
+        background-color: #0f172a;
+        border-left: 3px solid #3b82f6;
+    }
+
+    /* Kolom Input Form Flat Sempurna */
+    .flat-input {
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        color: #1e293b;
+        outline: none;
+        transition: border-color 0.15s ease-in-out;
+    }
+
+    .flat-input:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+    }
+
+    /* Scrollbar Custom Flat */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 0px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    </style>
 </head>
-
-<style>
-/* Kotak Data & Tabel Solid Flat */
-.flat-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-}
-
-/* Tombol Dropdown Sidebar Flat */
-.flat-dropdown {
-    background-color: #0f172a;
-    border-left: 3px solid #3b82f6;
-}
-
-/* Kolom Input Form Flat Sempurna */
-.flat-input {
-    background-color: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #1e293b;
-    outline: none;
-    transition: border-color 0.15s ease-in-out;
-}
-
-.flat-input:focus {
-    background-color: #ffffff;
-    border-color: #3b82f6;
-}
-
-/* Scrollbar Custom Flat */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 0px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-</style>
 
 <body class="bg-slate-100 font-sans antialiased text-slate-800">
 
@@ -69,10 +69,9 @@
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out h-full">
 
-            <!-- Header Sidebar (PERBAIKAN LOGO FAVICON DI SINI) -->
+            <!-- Header Sidebar -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800 shrink-0">
                 <div class="flex items-center space-x-3 truncate">
-                    <!-- ✅ LOGO AMBIL DARI FAVICON -->
                     <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                     <span class="text-white font-bold text-base truncate">
                         {{ Auth::user()->sekolah->nama_sekolah ?? $profilSekolah->nama_sekolah ?? 'Sistem Sekolah' }}
@@ -95,8 +94,10 @@
                 </a>
 
                 <!-- Dropdown Master Data -->
-                @php $isAkademikActive = request()->routeIs('admin.sekolah.*', 'admin.siswa.*', 'admin.guru.*',
-                'admin.kelas.*'); @endphp
+                @php
+                $isAkademikActive = request()->routeIs('admin.sekolah.*', 'admin.siswa.*', 'admin.guru.*',
+                'admin.kelas.*');
+                @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isAkademikActive ? 'text-white font-medium' : '' }}">
@@ -115,10 +116,6 @@
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Profil Sekolah
                         </a>
-                        <a href="{{ route('admin.siswa.index') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.siswa.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-user-graduate text-xs mr-2"></i> Data Siswa
-                        </a>
                         <a href="{{ route('admin.guru.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.guru.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-chalkboard-teacher text-xs mr-2"></i> Data Guru
@@ -127,11 +124,17 @@
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.kelas.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-layer-group text-xs mr-2"></i> Data Kelas
                         </a>
+                        <a href="{{ route('admin.siswa.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.siswa.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-user-graduate text-xs mr-2"></i> Data Siswa
+                        </a>
                     </div>
                 </div>
 
                 <!-- Dropdown Administrasi -->
-                @php $isAdminActive = request()->routeIs('admin.absensi.*', 'admin.kepala-sekolah.jurnal.*'); @endphp
+                @php
+                $isAdminActive = request()->routeIs('admin.absensi.*', 'admin.kepala-sekolah.jurnal.*');
+                @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isAdminActive ? 'text-white font-medium' : '' }}">
@@ -158,7 +161,9 @@
                 </div>
 
                 <!-- Dropdown Surat -->
-                @php $isSuratActive = request()->routeIs('admin.surat-masuk.*', 'admin.surat-keluar.*'); @endphp
+                @php
+                $isSuratActive = request()->routeIs('admin.surat-masuk.*', 'admin.surat-keluar.*');
+                @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-surat', 'arrow-surat')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isSuratActive ? 'text-white font-medium' : '' }}">
@@ -224,8 +229,9 @@
 
                 <!-- User Info Ringkas -->
                 <div class="flex items-center space-x-3">
-                    <span
-                        class="text-sm font-semibold text-slate-700 hidden sm:inline">{{ Auth::user()->name ?? 'Administrator' }}</span>
+                    <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
+                        {{ Auth::user()->name ?? 'Administrator' }}
+                    </span>
                     <div
                         class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
                         {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}
@@ -270,7 +276,7 @@
         }
     }
 
-    // 3. Resizing handler
+    // 3. Resizing handler untuk layar desktop
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768) {
             sidebar.classList.remove('-translate-x-full');
@@ -280,13 +286,12 @@
         }
     });
 
-    // 4. Alert Flash Notification
+    // 4. Alert Flash Notification (SweetAlert2)
     @if(session('success'))
     Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
-        text: '{{ session('
-        success ') }}',
+        text: @json(session('success')),
         showConfirmButton: false,
         timer: 2000
     });
@@ -296,8 +301,7 @@
     Swal.fire({
         icon: 'error',
         title: 'Oops...',
-        text: '{{ session('
-        error ') }}',
+        text: @json(session('error'))
     });
     @endif
     </script>

@@ -131,6 +131,10 @@
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
                         </a>
+                        <a href="{{ route('admin.absensi.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
+                        </a>
                     </div>
                 </div>
 
@@ -235,6 +239,25 @@
                 sidebar.classList.add('-translate-x-full');
             }
         });
+
+        // 4. Alert Flash Notification (SweetAlert2)
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: @json(session('success')),
+        showConfirmButton: false,
+        timer: 2000
+    });
+    @endif
+
+    @if(session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: @json(session('error'))
+    });
+    @endif
     </script>
 </body>
 

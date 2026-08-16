@@ -11,7 +11,8 @@
 </div>
 
 @if(session('success'))
-<div class="mb-6 p-4 bg-green-50 border border-green-300 text-green-800 text-sm rounded flex items-center justify-between">
+<div
+    class="mb-6 p-4 bg-green-50 border border-green-300 text-green-800 text-sm rounded flex items-center justify-between">
     <div>
         <i class="fa-solid fa-circle-check mr-1.5"></i> {{ session('success') }}
     </div>
@@ -43,18 +44,42 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Wali Kelas</label>
-                <select name="wali_kelas" class="w-full px-4 py-2 flat-input bg-white border rounded-md" required>
+                <select name="guru_id" class="w-full px-4 py-2 flat-input bg-white border rounded-md">
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($gurus as $guru)
-                    <option value="{{ $guru->nama_lengkap }}"
-                        {{ old('wali_kelas') == $guru->nama_lengkap ? 'selected' : '' }}>
-                        {{ $guru->nama_lengkap }}
+                    @php
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
+                    #'.$guru->id);
+                    @endphp
+                    <option value="{{ $guru->id }}" {{ old('guru_id') == $guru->id ? 'selected' : '' }}>
+                        {{ $namaGuru }}
                     </option>
                     @endforeach
                 </select>
-                @error('wali_kelas')
+                @error('guru_id')
                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
+            </div>
+
+            {{-- Section Checkbox Guru Pengampu --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Guru Pengampu / Mengajar</label>
+                <div class="space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md bg-gray-50/50">
+                    @forelse($gurus as $guru)
+                    @php
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
+                    #'.$guru->id);
+                    @endphp
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+                        <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}"
+                            {{ is_array(old('guru_ids')) && in_array($guru->id, old('guru_ids')) ? 'checked' : '' }}
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span>{{ $namaGuru }}</span>
+                    </label>
+                    @empty
+                    <p class="text-xs text-gray-400 italic">Belum ada data guru.</p>
+                    @endforelse
+                </div>
             </div>
 
             <button type="submit"
@@ -78,14 +103,24 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($kelas as $index => $k)
+                    @php
+                    $namaWali = $k->waliKelas?->nama_guru
+                    ?? $k->waliKelas?->nama_lengkap
+                    ?? $k->waliKelas?->nama
+                    ?? $k->waliKelas?->name
+                    ?? $k->wali_kelas;
+
+                    // Ambil array ID guru pengampu untuk dikirim ke JS Modal
+                    $assignedGuruIds = $k->gurus ? $k->gurus->pluck('id')->toArray() : [];
+                    @endphp
                     <tr class="hover:bg-gray-50/50 transition">
                         <td class="px-6 py-4 text-sm text-gray-500 text-center font-medium">{{ $index + 1 }}</td>
                         <td class="px-6 py-4 text-sm font-semibold text-gray-800">{{ $k->nama_kelas }}</td>
                         <td class="px-6 py-4 text-sm text-gray-600">
-                            @if($k->wali_kelas)
+                            @if($namaWali)
                             <span class="inline-flex items-center text-gray-700">
                                 <i class="fa-solid fa-user-tie text-gray-400 mr-2 text-xs"></i>
-                                {{ $k->wali_kelas }}
+                                {{ $namaWali }}
                             </span>
                             @else
                             <span class="text-xs text-gray-400 italic">Belum ditentukan</span>
@@ -93,16 +128,16 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-center">
                             <div class="flex items-center justify-center space-x-2">
-                                {{-- Tombol Edit (Perbaikan: Mengirim route dinamis langsung dari Blade) --}}
+                                {{-- Tombol Edit --}}
                                 <button type="button"
-                                    onclick="openEditModal('{{ route('admin.kelas.update', $k->id) }}', '{{ addslashes($k->nama_kelas) }}', '{{ addslashes($k->wali_kelas) }}')"
+                                    onclick="openEditModal('{{ route('admin.kelas.update', $k->id) }}', '{{ addslashes($k->nama_kelas) }}', '{{ $k->guru_id }}', {{ json_encode($assignedGuruIds) }})"
                                     class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded text-xs font-semibold transition border border-amber-200">
                                     <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
 
                                 {{-- Tombol Hapus --}}
                                 <form action="{{ route('admin.kelas.destroy', $k->id) }}" method="POST"
-                                    onsubmit="return confirm('Yakin ingin menghapus kelas {{ $k->nama_kelas }}?')"
+                                    onsubmit="return confirm('Yakin ingin menghapus kelas {{ addslashes($k->nama_kelas) }}?')"
                                     class="inline">
                                     @csrf
                                     @method('DELETE')
@@ -134,7 +169,8 @@
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
             <h3 class="font-bold text-gray-800">Edit Data Kelas</h3>
-            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+            <button type="button" onclick="closeEditModal()"
+                class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
         </div>
 
         <form id="editForm" method="POST" class="p-6 space-y-4">
@@ -149,13 +185,34 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Wali Kelas</label>
-                <select id="edit_wali_kelas" name="wali_kelas"
-                    class="w-full px-4 py-2 border rounded-md flat-input bg-white" required>
+                <select id="edit_guru_id" name="guru_id" class="w-full px-4 py-2 border rounded-md flat-input bg-white">
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($gurus as $guru)
-                    <option value="{{ $guru->nama_lengkap }}">{{ $guru->nama_lengkap }}</option>
+                    @php
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
+                    #'.$guru->id);
+                    @endphp
+                    <option value="{{ $guru->id }}">{{ $namaGuru }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            {{-- Checkbox Guru Pengampu pada Modal --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Guru Pengampu / Mengajar</label>
+                <div class="space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md bg-gray-50/50">
+                    @foreach($gurus as $guru)
+                    @php
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
+                    #'.$guru->id);
+                    @endphp
+                    <label class="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+                        <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}"
+                            class="edit-guru-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span>{{ $namaGuru }}</span>
+                    </label>
+                    @endforeach
+                </div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-3">
@@ -172,12 +229,18 @@
     </div>
 </div>
 
-{{-- Script Pendukung Modal Edit (Perbaikan: Tidak ada parsing Blade di dalam JS) --}}
+{{-- Script Pendukung Modal Edit --}}
 <script>
-function openEditModal(url, namaKelas, waliKelas) {
+function openEditModal(url, namaKelas, guruId, assignedGuruIds = []) {
     document.getElementById('editForm').action = url;
     document.getElementById('edit_nama_kelas').value = namaKelas;
-    document.getElementById('edit_wali_kelas').value = waliKelas;
+    document.getElementById('edit_guru_id').value = (guruId && guruId !== 'null') ? guruId : '';
+
+    // Centang otomatis checkbox guru pengampu sesuai data kelas
+    const checkboxes = document.querySelectorAll('.edit-guru-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = assignedGuruIds.includes(parseInt(cb.value));
+    });
 
     document.getElementById('editModal').classList.remove('hidden');
 }

@@ -54,4 +54,20 @@ class Guru extends Model
     {
         return $this->belongsTo(Sekolah::class);
     }
+
+    /**
+     * Relasi Many-to-Many ke Kelas (Guru Pengampu Mapel/Sesi via Pivot `guru_kelas`)
+     */
+    public function kelas()
+    {
+        return $this->belongsToMany(Kelas::class, 'guru_kelas', 'guru_id', 'kelas_id');
+    }
+
+    /**
+     * Relasi One-to-Many ke Kelas (Jika Guru menjadi Wali Kelas)
+     */
+    public function kelasWali()
+    {
+        return $this->hasMany(Kelas::class, 'guru_id');
+    }
 }

@@ -44,7 +44,7 @@ class GuruController extends Controller
         $sekolahKelas = Kelas::where('sekolah_id', $sekolahId)->get();
 
         $gurus->getCollection()->transform(function ($guru) use ($sekolahKelas) {
-            // 1. Cek apakah guru bertindak sebagai Guru Mata Pelajaran (berdasarkan jabatan/jenis_guru/mata_pelajaran)
+            // 1. Cek apakah guru bertindak sebagai Guru Mata Pelajaran
             $jabatanLower = strtolower($guru->jabatan ?? '');
             $jenisGuruLower = strtolower($guru->jenis_guru ?? '');
             
@@ -59,7 +59,6 @@ class GuruController extends Controller
                 $guruIdVal = $kelas->guru_id ?? null;
                 $waliIdVal = $kelas->wali_kelas_id ?? null;
 
-                // Cocokkan dengan ID Guru, ID User, atau Nama Guru
                 return in_array($guru->id, [$waliVal, $guruIdVal, $waliIdVal]) ||
                        in_array($guru->user_id, [$waliVal, $guruIdVal, $waliIdVal]) ||
                        ($guru->nama_lengkap && $waliVal == $guru->nama_lengkap);
@@ -71,13 +70,13 @@ class GuruController extends Controller
 
             if ($isGuruMapel) {
                 $guru->tipe_penugasan = 'guru_mapel';
-                $guru->has_kelas = true; // Dianggap valid agar tidak merah di Blade
+                $guru->has_kelas = true; 
             } elseif ($assignedClasses->isNotEmpty()) {
                 $guru->tipe_penugasan = 'wali_kelas';
                 $guru->has_kelas = true;
             } else {
                 $guru->tipe_penugasan = 'none';
-                $guru->has_kelas = false; // Akan memicu badge merah "Belum Setting Kelas"
+                $guru->has_kelas = false; 
             }
 
             return $guru;
@@ -116,7 +115,7 @@ class GuruController extends Controller
             'jabatan'             => 'nullable|string|max:100',
             'jenis_guru'          => 'nullable|string|max:50',
             'mata_pelajaran'      => 'nullable|string|max:100',
-            'tmt_sk'              => 'nullable|date',
+            'tmt_sk'              => 'nullable|date', // ✅ Validasi tipe tanggal
             'mkg_tahun'           => 'nullable|integer|min:0',
             'mkg_bulan'           => 'nullable|integer|min:0|max:11',
 
@@ -126,6 +125,11 @@ class GuruController extends Controller
             'no_serdik'           => 'nullable|string|max:50',
             'nrg'                 => 'nullable|string|max:50',
         ], $this->customErrorMessages());
+
+        // Ubah string kosong "" pada field date menjadi NULL agar tidak terkirim sebagai invalid date di MySQL
+        if (empty($validatedData['tmt_sk'])) {
+            $validatedData['tmt_sk'] = null;
+        }
 
         // 2. Simpan Data Guru & Akun User dalam Transaction
         DB::transaction(function () use ($validatedData, $request) {
@@ -152,7 +156,6 @@ class GuruController extends Controller
             Guru::create($validatedData);
         });
 
-        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru berhasil ditambah
         return redirect()->route('admin.guru.index')->with('success', 'Data Guru & Akun User login berhasil ditambahkan!');
     }
 
@@ -171,9 +174,9 @@ class GuruController extends Controller
      */
     public function update(Request $request, Guru $guru)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'nik'                 => 'required|digits:16|unique:gurus,nik,' . $guru->id,
-            'nip'                 => 'nullable|digits:18|unique:gurus,nip,' . $guru->id, // ✅ Ditambahkan validasi NIP & pengecualian ID
+            'nip'                 => 'nullable|digits:18|unique:gurus,nip,' . $guru->id,
             'nuptk'               => 'nullable|digits:16|unique:gurus,nuptk,' . $guru->id,
             'nama_lengkap'        => 'required|string|max:255',
             'tempat_lahir'        => 'required|string',
@@ -185,16 +188,25 @@ class GuruController extends Controller
             'jabatan'             => 'nullable|string',
             'jenis_guru'          => 'nullable|string',
             'mata_pelajaran'      => 'nullable|string',
-        ]);
+            'tmt_sk'              => 'nullable|date', // ✅ Mencegah error format tahun invalid seperti 20019
+            'mkg_tahun'           => 'nullable|integer|min:0',
+            'mkg_bulan'           => 'nullable|integer|min:0|max:11',
+            'no_serdik'           => 'nullable|string|max:50',
+            'nrg'                 => 'nullable|string|max:50',
+        ], $this->customErrorMessages());
 
-        $guru->update($request->all());
+        // Ubah string kosong "" pada field date menjadi NULL
+        if (empty($validatedData['tmt_sk'])) {
+            $validatedData['tmt_sk'] = null;
+        }
+
+        $guru->update($validatedData);
 
         // Update nama user jika terikat
         if ($guru->user) {
             $guru->user->update(['name' => $request->nama_lengkap]);
         }
 
-        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru berhasil diperbarui
         return redirect()->route('admin.guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }
 
@@ -212,7 +224,6 @@ class GuruController extends Controller
             $guru->delete();
         });
 
-        // ✅ BARU: Mengirim pesan flash alert sukses saat data guru dan akun user dihapus
         return redirect()->route('admin.guru.index')->with('success', 'Data Guru dan Akun User berhasil dihapus!');
     }
 
@@ -224,7 +235,6 @@ class GuruController extends Controller
         $this->authorizeSekolah($guru);
 
         if (!$guru->user) {
-            // ✅ BARU: Mengirim pesan flash alert error jika user tidak ditemukan
             return back()->with('error', 'Akun user untuk guru ini tidak ditemukan.');
         }
 
@@ -234,7 +244,6 @@ class GuruController extends Controller
             'password' => Hash::make($identifier),
         ]);
 
-        // ✅ BARU: Mengirim pesan flash alert sukses saat password berhasil direset
         return back()->with('success', "Password akun {$guru->nama_lengkap} berhasil di-reset ke default ({$identifier}).");
     }
 
@@ -257,6 +266,8 @@ class GuruController extends Controller
             'nip.unique'            => 'NIP sudah terdaftar.',
             'nuptk.digits'          => 'NUPTK harus berjumlah 16 digit.',
             'nuptk.unique'          => 'NUPTK sudah terdaftar.',
+            'tmt_sk.date'           => 'Format TMT SK harus berupa tanggal yang valid (YYYY-MM-DD).',
+            'tanggal_lahir.date'    => 'Format Tanggal Lahir harus berupa tanggal yang valid (YYYY-MM-DD).',
         ];
     }
 }

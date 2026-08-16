@@ -106,7 +106,6 @@ class JurnalController extends Controller
         return redirect()->back()->with('success', 'Jurnal pembelajaran berhasil dihapus.');
     }
 
-   
     /**
      * Cetak rekap jurnal guru menggunakan template Word (.docx)
      */
@@ -124,11 +123,19 @@ class JurnalController extends Controller
             return redirect()->back()->with('error', 'Tidak ada data jurnal untuk dicetak.');
         }
 
-        // 2. Ambil Data Kepala Sekolah
+        // 2. KUNCIAN DOWNLOAD: Cek apakah ada jurnal yang belum Disetujui / Ditolak
+        $adaBelumDisetujui = $jurnals->contains(function ($item) {
+            return strtolower($item->status_validasi) !== 'disetujui';
+        });
+
+        if ($adaBelumDisetujui) {
+            return redirect()->back()->with('error', 'Gagal Download! Masih ada jurnal yang dalam status Pending atau Ditolak oleh Kepala Sekolah.');
+        }
+
+        // 3. Ambil Data Kepala Sekolah
         $kepalaSekolah = User::whereIn('role', ['kepala_sekolah', 'kepsek'])->first();
 
-        // 3. Path File Template Word
-        // ✅ KODE BARU (Mengambil dari folder public & ikut ke-push di Git):
+        // 4. Path File Template Word
         $templatePath = public_path('templates/template_rekap.docx');
 
         if (!file_exists($templatePath)) {
@@ -146,43 +153,65 @@ class JurnalController extends Controller
                 return htmlspecialchars($text ?? '-', ENT_QUOTES, 'UTF-8');
             };
 
-            // 4. Mengisi variabel bagian atas (Header)
+            // 5. Mengisi variabel bagian atas (Header)
             $template->setValue('mapel_atas', $clean($jurnalPertama->mapel));
             $template->setValue('kelas_atas', $clean($jurnalPertama->kelas->nama_kelas ?? null));
             $template->setValue('bulan', Carbon::now()->translatedFormat('F Y'));
-            
-            // 5. Tanda tangan & Identitas Guru
+
+            // 6. Tanda tangan & Identitas Guru
             $template->setValue('nama_guru', $clean($user->name));
             $template->setValue('nip', $clean($user->nip));
 
-            // 6. Tanda tangan & Identitas Kepala Sekolah
+            // 7. Tanda tangan & Identitas Kepala Sekolah
             $template->setValue('nama_ks', $clean($kepalaSekolah->name ?? '..................................'));
             $template->setValue('nip_ks', $clean($kepalaSekolah->nip ?? '..................................'));
 
-            // 7. Duplikasi Baris Tabel Rekap
-            $totalData = count($jurnals);
-            
-            // Lakukan clone row berdasarkan tag 'no'
-            $template->cloneRow('no', $totalData);
+            // 8. GROUPING BERDASARKAN TANGGAL (Menggabungkan tanggal yang sama ke dalam 1 baris)
+            $groupedJurnals = $jurnals->groupBy('tanggal');
+            $totalTanggal = $groupedJurnals->count();
 
-            foreach ($jurnals as $index => $item) {
-                $i = $index + 1;
-                $tglFormatted = Carbon::parse($item->tanggal)->translatedFormat('d M Y');
+            // Clone row berdasarkan jumlah TANGGAL UNIK (bukan total baris)
+            $template->cloneRow('no', $totalTanggal);
 
+            $i = 1;
+            foreach ($groupedJurnals as $tanggal => $items) {
+                $tglFormatted = Carbon::parse($tanggal)->translatedFormat('d M Y');
+                $hari = $clean($items->first()->hari);
+
+                $jamList        = [];
+                $materiList     = [];
+                $kegiatanList   = [];
+                $keteranganList = [];
+
+                // Jika pada 1 tanggal ada lebih dari 1 jurnal, format dengan simbol '●'
+                $pakeBullet = count($items) > 1;
+
+                foreach ($items as $item) {
+                    $prefix = $pakeBullet ? '● ' : '';
+
+                    $jamList[]        = $prefix . "Jam {$clean($item->jam_ke)} ({$clean($item->kelas->nama_kelas ?? '-')})";
+                    $materiList[]     = $prefix . $clean($item->materi);
+                    $kegiatanList[]   = $prefix . $clean($item->kegiatan);
+                    $keteranganList[] = $prefix . $clean($item->keterangan);
+                }
+
+                // Masukkan data ter-grouping dengan pemisah baris baru (\n)
                 $template->setValue("no#{$i}", $i);
-                $template->setValue("hari#{$i}", $clean($item->hari));
+                $template->setValue("hari#{$i}", $hari);
                 $template->setValue("tanggal#{$i}", $clean($tglFormatted));
-                $template->setValue("jam_ke#{$i}", $clean($item->jam_ke));
-                $template->setValue("materi#{$i}", $clean($item->materi));
-                $template->setValue("kegiatan#{$i}", $clean($item->kegiatan));
-                $template->setValue("keterangan#{$i}", $clean($item->keterangan));
+                $template->setValue("jam_ke#{$i}", implode("\n", $jamList));
+                $template->setValue("materi#{$i}", implode("\n", $materiList));
+                $template->setValue("kegiatan#{$i}", implode("\n", $kegiatanList));
+                $template->setValue("keterangan#{$i}", implode("\n", $keteranganList));
+
+                $i++;
             }
 
-            // 8. Buat file temp unik
+            // 9. Buat file temp unik
             $tempFile = tempnam(sys_get_temp_dir(), 'rekap_jurnal_') . '.docx';
             $template->saveAs($tempFile);
 
-            // 9. Bersihkan buffer output murni
+            // 10. Bersihkan buffer output murni
             while (ob_get_level()) {
                 ob_end_clean();
             }

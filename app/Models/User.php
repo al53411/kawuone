@@ -51,6 +51,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Helper Methods Pengecekan Role (Tambahan Sangat Berguna)
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin' || $this->role === 'superadmin';
+    }
+
+    public function isGuru(): bool
+    {
+        return $this->role === 'guru' || $this->role === 'guru_mapel';
+    }
+
+    /**
      * Relasi ke Model Sekolah
      */
     public function sekolah()
@@ -59,7 +72,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Relasi ke Model Guru (Penambahan untuk memperbaiki error guru())
+     * Relasi ke Model Guru
      */
     public function guru()
     {

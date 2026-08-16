@@ -6,29 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-        public function up(): void
+    public function up(): void
     {
+        // Matikan pengecekan FK sementara agar MySQL tidak protes tipe data
+        Schema::disableForeignKeyConstraints();
+
         Schema::create('absensis', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
-            $table->date('tanggal');
-            $table->enum('status', ['Hadir', 'Izin', 'Sakit', 'Alpa'])->default('Hadir');
-            $table->string('keterangan')->nullable(); // Catatan tambahan jika diperlukan
-            $table->timestamps();
             
-            // Proteksi: 1 siswa hanya bisa punya 1 status absen per hari
-            $table->unique(['siswa_id', 'tanggal']);
+            $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
+            $table->foreignId('kelas_id')->constrained('kelas')->onDelete('cascade');
+            $table->foreignId('guru_id')->constrained('gurus')->onDelete('cascade');
+            
+            $table->date('tanggal');
+            $table->enum('status', ['Hadir', 'Sakit', 'Izin', 'Alpa']);
+            $table->enum('tipe_absen', ['harian', 'mapel'])->default('harian');
+            
+            $table->string('mapel')->nullable();
+            $table->string('jam_ke')->nullable();
+            $table->text('catatan')->nullable();
+            
+            $table->timestamps();
         });
+
+        // Nyalakan kembali pengecekan FK
+        Schema::enableForeignKeyConstraints();
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('absensis');
+        Schema::enableForeignKeyConstraints();
     }
 };

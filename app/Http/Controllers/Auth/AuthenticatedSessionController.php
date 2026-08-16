@@ -44,16 +44,15 @@ class AuthenticatedSessionController extends Controller
             // Jika input berupa Email (Admin / Superadmin / Guru yang input email)
             $user = User::where('email', $loginInput)->first();
         } else {
-            // Jika input berupa NIP (Angka saja):
-            
-            // Skenario A: Cek email format NIP@sekolah.com atau NIP@sekolah.id
-            $user = User::where('email', 'LIKE', $loginInput . '@%')->first();
+            // Jika input berupa NIP/NIK (Angka saja):
+            // Skenario A: Cari via relasi tabel gurus
+            $user = User::whereHas('guru', function ($query) use ($loginInput) {
+                $query->where('nip', $loginInput)->orWhere('nik', $loginInput);
+            })->first();
 
-            // Skenario B: Jika tidak ketemu, cari via relasi tabel gurus (jika ada)
+            // Skenario B: Jika tidak ketemu via relasi, baru cek email dengan prefix NIP
             if (!$user) {
-                $user = User::whereHas('guru', function ($query) use ($loginInput) {
-                    $query->where('nip', $loginInput)->orWhere('nik', $loginInput);
-                })->first();
+                $user = User::where('email', 'LIKE', $loginInput . '@%')->first();
             }
         }
 
@@ -61,22 +60,25 @@ class AuthenticatedSessionController extends Controller
         if ($user && Hash::check($password, $user->password)) {
             // Login user secara manual
             Auth::login($user, $request->boolean('remember'));
+            
+            // Hapus intended URL lama agar tidak mengganggu redirect berdasarkan role
+            $request->session()->forget('url.intended');
             $request->session()->regenerate();
 
-            // Redirection berdasarkan role
+            // Redirection mutlak berdasarkan role (tanpa memprioritaskan intended URL lama)
             if ($user->role === 'superadmin') {
-                return redirect()->intended('/superadmin/dashboard');
+                return redirect('/superadmin/dashboard');
             }
 
             if (in_array($user->role, ['admin', 'admin_sekolah', 'kepsek'])) {
-                return redirect()->intended('/admin/dashboard');
+                return redirect('/admin/dashboard');
             }
 
             if ($user->role === 'guru') {
-                return redirect()->intended('/guru/dashboard');
+                return redirect('/guru/dashboard');
             }
 
-            return redirect()->intended('/dashboard');
+            return redirect('/dashboard');
         }
 
         // 4. Jika login gagal

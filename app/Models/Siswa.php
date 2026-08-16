@@ -9,11 +9,12 @@ class Siswa extends Model
 {
     use HasFactory;
 
-    // Tambahkan baris di bawah ini untuk mengizinkan input data
+    // Mengizinkan input data massal sesuai dengan nama kolom database
     protected $fillable = [
         'sekolah_id',
+        'user_id',
         'nisn',
-        'nama_siswa',
+        'nama_lengkap', // <--- DIBETULKAN DARI nama_siswa KE nama_lengkap
         'kelas_id',
         'jenis_kelamin',
         'alamat'
