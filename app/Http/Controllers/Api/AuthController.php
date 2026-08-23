@@ -15,25 +15,27 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-            if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials)) {
             $user = Auth::user();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Login berhasil',
                 'user'    => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                    'role'  => $user->role, // Penting agar Android tahu role user (superadmin/guru/siswa)
+                    'id'    => (int) $user->id,
+                    'name'  => (string) $user->name,
+                    'email' => (string) $user->email,
+                    'role'  => (string) ($user->role ?? 'user'),
                 ],
-                'token'   => null // Tambahkan ini agar tidak crash di Android jika memanggil data token
+                'token'   => '' // Ubah null menjadi string kosong '' agar Retrofit tidak menganggapnya crash
             ], 200);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Email atau password salah'
+            'message' => 'Email atau password salah',
+            'user'    => null, // Tambahkan ini agar struktur JSON respons konsisten
+            'token'   => null
         ], 401);
     }
 }
