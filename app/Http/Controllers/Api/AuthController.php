@@ -11,12 +11,22 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email'    => 'required|email',
+        $request->validate([
+            'email'    => 'required', // Bisa berisi Email atau NIP
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        $loginInput = $request->email;
+        
+        // Cek apakah input berupa NIP (angka) atau Email
+        $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'email';
+        
+        // Jika inputan angka NIP saja (misal: 198501012010011001), otomatis tambahkan domain @sekolah.id
+        if (!filter_var($loginInput, FILTER_VALIDATE_EMAIL) && is_numeric($loginInput)) {
+            $loginInput = $loginInput . '@sekolah.id';
+        }
+
+        if (Auth::attempt(['email' => $loginInput, 'password' => $request->password])) {
             /** @var User $user */
             $user = Auth::user();
 
@@ -27,14 +37,14 @@ class AuthController extends Controller
                     'id'    => $user->id,
                     'name'  => $user->name,
                     'email' => $user->email,
-                    'role'  => $user->role, // Mengirimkan role dari DB ('guru', 'kepsek', 'admin', dll)
+                    'role'  => strtolower($user->role),
                 ],
             ], 200);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Email atau Password salah.',
+            'message' => 'NIP/Email atau Password salah.',
         ], 401);
     }
 }
