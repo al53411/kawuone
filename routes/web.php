@@ -141,33 +141,31 @@ require __DIR__.'/auth.php';
 
 
 // ==========================================
-// ROUTE UTILITY (Hanya Aktif di Environment Local)
+// ROUTE UTILITY (Dapat diakses di Local maupun Production)
 // ==========================================
-if (app()->environment('local')) {
-    Route::get('/run-migrate', function () {
-        if (request('key') !== '12345') {
-            abort(403, 'Akses ditolak: Key salah!');
-        }
+Route::get('/run-migrate', function () {
+    if (request('key') !== '12345') {
+        abort(403, 'Akses ditolak: Key salah!');
+    }
 
-        try {
-            Artisan::call('migrate:fresh', [
-                '--force' => true,
-                '--seed'  => true,
-            ]);
+    try {
+        Artisan::call('migrate:fresh', [
+            '--force' => true,
+            '--seed'  => true,
+        ]);
 
-            return '
-                <div style="font-family: sans-serif; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
-                    <h2 style="margin-top:0;">✅ Migration & Seeding Berhasil!</h2>
-                    <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . Artisan::output() . '</pre>
-                </div>
-            ';
-        } catch (\Exception $e) {
-            return '
-                <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
-                    <h2 style="margin-top:0;">❌ Migration Gagal!</h2>
-                    <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . $e->getMessage() . '</pre>
-                </div>
-            ';
-        }
-    });
-}
+        return '
+            <div style="font-family: sans-serif; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
+                <h2 style="margin-top:0;">✅ Migration & Seeding Berhasil!</h2>
+                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . Artisan::output() . '</pre>
+            </div>
+        ';
+    } catch (\Exception $e) {
+        return '
+            <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
+                <h2 style="margin-top:0;">❌ Migration Gagal!</h2>
+                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . $e->getMessage() . '</pre>
+            </div>
+        ';
+    }
+});
