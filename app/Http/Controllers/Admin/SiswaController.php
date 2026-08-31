@@ -24,32 +24,35 @@ class SiswaController extends Controller
             return null;
         }
 
-        // Ambil dari user->sekolah_id (Admin) atau user->guru->sekolah_id (Guru)
         return $user->sekolah_id ?? $user->guru?->sekolah_id;
     }
 
     /**
-     * Menampilkan daftar siswa (Otomatis menyesuaikan Admin vs Guru)
+     * Menampilkan daftar siswa (Menyediakan Filter Kelas & Pencarian Nama/NISN)
      */
-    public function index()
+    public function index(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
         $sekolahId = $this->getSekolahId();
 
+        // 1. Ambil daftar kelas untuk dropdown filter di Blade
+        $kelasQuery = Kelas::query();
+        if ($sekolahId && Schema::hasColumn('kelas', 'sekolah_id')) {
+            $kelasQuery->where('sekolah_id', $sekolahId);
+        }
+        $listKelas = $kelasQuery->orderBy('nama_kelas', 'asc')->get();
+
+        // 2. Query Utama Siswa
         $query = Siswa::with('kelas');
 
-        // 1. JIKA YANG LOGIN ADALAH GURU
+        // LOGIKA PENYARINGAN ROLE GURU VS ADMIN
         if ($user && ($user->isGuru() || $user->role === 'guru' || $user->guru)) {
             $guru = $user->guru;
-
             $allKelasIds = [];
 
             if ($guru) {
-                // Ambil ID Kelas tempat guru jadi Wali Kelas
                 $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
-
-                // Ambil ID Kelas dari relasi pivot (guru_kelas)
                 $kelasPengampuIds = method_exists($guru, 'kelas') 
                     ? $guru->kelas()->pluck('kelas.id')->toArray() 
                     : [];
@@ -58,41 +61,57 @@ class SiswaController extends Controller
             }
 
             if (!empty($allKelasIds)) {
-                // Filter siswa berdasarkan kelas yang diampu guru
                 $query->whereIn('kelas_id', $allKelasIds);
             } else if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
-                // Fallback 1: Jika guru belum di-assign kelas
                 $query->where(function($q) use ($sekolahId) {
                     $q->where('sekolah_id', $sekolahId)
                       ->orWhereNull('sekolah_id');
                 });
             }
-
-            $siswas = $query->latest()->get();
-
-            // FALLBACK 2: Jika setelah difilter kelas data siswas masih KOSONG
-            if ($siswas->isEmpty() && $sekolahId) {
-                $siswas = Siswa::with('kelas')
-                    ->where(function($q) use ($sekolahId) {
-                        $q->where('sekolah_id', $sekolahId)
-                          ->orWhereNull('sekolah_id');
-                    })
-                    ->latest()
-                    ->get();
-            }
-        } 
-        // 2. JIKA ADMIN / SUPERADMIN
-        else {
+        } else {
+            // Role Admin / Superadmin
             if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
                 $query->where(function($q) use ($sekolahId) {
                     $q->where('sekolah_id', $sekolahId)
                       ->orWhereNull('sekolah_id');
                 });
             }
-            $siswas = $query->latest()->get();
         }
 
-        return view('admin.siswa.index', compact('siswas'));
+        // 3. APPLY FILTER: Dropdown Pilih Kelas
+        if ($request->filled('kelas_id')) {
+            $query->where('kelas_id', $request->kelas_id);
+        }
+
+        // 4. APPLY FILTER: Input Pencarian (Nama Siswa / NISN)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                // Mendukung pencarian kolom 'nama_siswa' maupun 'nama_lengkap' jika ada fallback
+                if (Schema::hasColumn('siswas', 'nama_siswa')) {
+                    $q->where('nama_siswa', 'like', "%{$search}%");
+                } else {
+                    $q->where('nama_lengkap', 'like', "%{$search}%");
+                }
+
+                $q->orWhere('nisn', 'like', "%{$search}%");
+            });
+        }
+
+        $siswas = $query->latest()->get();
+
+        // FALLBACK: Jika Guru tidak di-assign kelas spesifik dan hasil pencarian/filter awal kosong
+        if ($siswas->isEmpty() && !$request->filled('search') && !$request->filled('kelas_id') && $user && ($user->isGuru() || $user->role === 'guru' || $user->guru) && $sekolahId) {
+            $siswas = Siswa::with('kelas')
+                ->where(function($q) use ($sekolahId) {
+                    $q->where('sekolah_id', $sekolahId)
+                      ->orWhereNull('sekolah_id');
+                })
+                ->latest()
+                ->get();
+        }
+
+        return view('admin.siswa.index', compact('siswas', 'listKelas'));
     }
 
     /**
@@ -119,13 +138,13 @@ class SiswaController extends Controller
         $sekolahId = $this->getSekolahId();
 
         $validated = $request->validate([
-            'nama_siswa'    => 'required|string|max:255', // ✅ Diubah ke nama_siswa
+            'nama_siswa'    => 'required|string|max:255',
             'nisn'          => 'required|string|max:20|unique:siswas,nisn',
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
         ], [
-            'nama_siswa.required'   => 'Nama siswa wajib diisi!', // ✅ Message disesuaikan
+            'nama_siswa.required'   => 'Nama siswa wajib diisi!',
             'nisn.unique'           => 'NISN sudah terdaftar dalam sistem!',
             'nisn.required'         => 'NISN wajib diisi!',
             'kelas_id.required'     => 'Kelas wajib dipilih!',
@@ -133,7 +152,7 @@ class SiswaController extends Controller
         ]);
 
         $data = [
-            'nama_siswa'    => $validated['nama_siswa'], // ✅ Diubah ke nama_siswa
+            'nama_siswa'    => $validated['nama_siswa'],
             'nisn'          => $validated['nisn'],
             'kelas_id'      => $validated['kelas_id'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
@@ -204,13 +223,13 @@ class SiswaController extends Controller
         $siswa = $siswaQuery->findOrFail($id);
 
         $validated = $request->validate([
-            'nama_siswa'    => 'required|string|max:255', // ✅ Diubah ke nama_siswa
+            'nama_siswa'    => 'required|string|max:255',
             'nisn'          => ['required', 'string', 'max:20', Rule::unique('siswas', 'nisn')->ignore($siswa->id)],
             'kelas_id'      => 'required|exists:kelas,id',
             'jenis_kelamin' => 'required|in:L,P',
             'alamat'        => 'nullable|string',
         ], [
-            'nama_siswa.required'   => 'Nama siswa wajib diisi!', // ✅ Message disesuaikan
+            'nama_siswa.required'   => 'Nama siswa wajib diisi!',
             'nisn.unique'           => 'NISN sudah digunakan oleh siswa lain!',
             'nisn.required'         => 'NISN wajib diisi!',
             'kelas_id.required'     => 'Kelas wajib dipilih!',
@@ -218,7 +237,7 @@ class SiswaController extends Controller
         ]);
 
         $siswa->update([
-            'nama_siswa'    => $validated['nama_siswa'], // ✅ Diubah ke nama_siswa
+            'nama_siswa'    => $validated['nama_siswa'],
             'nisn'          => $validated['nisn'],
             'kelas_id'      => $validated['kelas_id'],
             'jenis_kelamin' => $validated['jenis_kelamin'],

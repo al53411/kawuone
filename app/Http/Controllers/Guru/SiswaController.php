@@ -12,59 +12,43 @@ use Illuminate\Support\Facades\Schema;
 class SiswaController extends Controller
 {
     /**
-     * Menampilkan daftar siswa untuk guru.
+     * Menampilkan daftar siswa KHUSUS kelas milik guru yang login.
      */
-    public function index()
+    public function index(Request $request)
     {
-        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         $guru = $user?->guru;
         $sekolahId = $user?->sekolah_id ?? $guru?->sekolah_id;
 
-        $allKelasIds = [];
-
-        if ($guru) {
-            // 1. Ambil ID kelas jika dia Wali Kelas
-            if (Schema::hasColumn('kelas', 'guru_id')) {
-                $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
-                $allKelasIds = array_merge($allKelasIds, $kelasWaliIds);
-            }
-
-            // 2. Ambil ID kelas dari tabel guru_kelas (Pivot) jika method relasi 'kelas' ada di Model Guru
-            if (method_exists($guru, 'kelas')) {
-                try {
-                    $kelasPengampuIds = $guru->kelas()->pluck('kelas.id')->toArray();
-                    $allKelasIds = array_merge($allKelasIds, $kelasPengampuIds);
-                } catch (\Exception $e) {
-                    // Abaikan jika tabel pivot belum disiapin
-                }
-            }
-
-            $allKelasIds = array_unique(array_filter($allKelasIds));
-        }
+        // Ambil daftar kelas untuk di-pass ke dropdown Blade
+        $listKelas = Kelas::where('sekolah_id', $sekolahId)->get();
 
         $query = Siswa::with('kelas');
 
-        // Jika guru mengampu kelas tertentu -> Tampilkan siswa di kelas-kelas tersebut
-        if (!empty($allKelasIds)) {
-            $query->whereIn('kelas_id', $allKelasIds);
+        // 1. Filter Berdasarkan Kelas yang dipilih
+        if ($request->filled('kelas_id')) {
+            $query->where('kelas_id', $request->kelas_id);
         } 
-        // Fallback jika belum terikat kelas / $allKelasIds kosong -> Tampilkan semua siswa di sekolah tersebut
-        else if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
-            $query->where(function ($q) use ($sekolahId) {
-                $q->where('sekolah_id', $sekolahId)
-                  ->orWhereNull('sekolah_id');
+        // Jika tidak pilih kelas & bukan guru mapel, kunci ke kelas wali
+        else if ($guru && $guru->jabatan !== 'Guru Mapel') {
+            $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
+            if (!empty($kelasWaliIds)) {
+                $query->whereIn('kelas_id', $kelasWaliIds);
+            }
+        }
+
+        // 2. Filter Berdasarkan Pencarian (Nama / NISN)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_siswa', 'like', "%{$search}%")
+                ->orWhere('nisn', 'like', "%{$search}%");
             });
         }
 
         $siswas = $query->latest()->get();
 
-        // FALLBACK TERAKHIR: Jika hasil query masih kosong sama sekali, tarik semua data siswa yang ada
-        if ($siswas->isEmpty()) {
-            $siswas = Siswa::with('kelas')->latest()->get();
-        }
-
-        return view('guru.siswa.index', compact('siswas'));
+        return view('guru.siswa.index', compact('siswas', 'listKelas'));
     }
 
     /**
@@ -86,7 +70,6 @@ class SiswaController extends Controller
             'required'      => 'Field ini wajib diisi!',
         ]);
 
-        // Fleksibilitas nama kolom (nama_siswa vs nama_lengkap)
         if (Schema::hasColumn('siswas', 'nama_lengkap')) {
             $validatedData['nama_lengkap'] = $validatedData['nama_siswa'];
         }

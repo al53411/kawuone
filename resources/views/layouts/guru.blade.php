@@ -115,28 +115,30 @@
                 </div>
 
                 <!-- Dropdown Administrasi Guru -->
-                <div class="space-y-1">
-                    <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
-                        class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
-                            <span class="font-medium text-sm">Administrasi</span>
-                        </div>
-                        <i id="arrow-administrasi"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.jurnal.*') ? 'rotate-180' : '' }}"></i>
-                    </button>
-
-                    <div id="dropdown-administrasi" class="{{ request()->routeIs('guru.jurnal.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
-                        <a href="{{ route('guru.jurnal.index') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
-                        </a>
-                        <a href="{{ route('admin.absensi.index') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
-                        </a>
+            <div class="space-y-1">
+                <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
+                    class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                        <span class="font-medium text-sm">Administrasi</span>
                     </div>
+                    <i id="arrow-administrasi"
+                        class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? 'rotate-180' : '' }}"></i>
+                </button>
+
+                <div id="dropdown-administrasi" class="{{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <a href="{{ route('guru.jurnal.index') }}"
+                        class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                        <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
+                    </a>
+                    
+                    <!-- PERBAIKAN: Mengarahkan ke route Guru -->
+                    <a href="{{ route('guru.absensi.index') }}"
+                        class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                        <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
+                    </a>
                 </div>
+            </div>
 
             </div>
 

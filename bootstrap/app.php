@@ -1,9 +1,11 @@
 <?php
+
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\CheckRole; // 1. Import middleware kamu
+use App\Http\Middleware\CheckRole; // 1. Import middleware custom
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,10 +16,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         
-        // 2. Percayai proxy Vercel agar HTTPS terbaca sempurna (Menghilangkan error Form is not secure)
+        // 2. Percayai proxy Vercel agar HTTPS terbaca sempurna
         $middleware->trustProxies(at: '*');
 
-        // 3. Daftarkan alias 'role' di sini
+        // 3. Bypass CSRF untuk rute login & logout agar tidak terkena Error 419 di localhost
+        $middleware->validateCsrfTokens(except: [
+            'login',
+            'logout',
+        ]);
+
+        // 4. Daftarkan alias 'role'
         $middleware->alias([
             'role' => CheckRole::class,
         ]);

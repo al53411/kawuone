@@ -22,12 +22,11 @@ use App\Http\Controllers\Admin\JurnalController as AdminJurnalController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\GuruSiswaController;
 use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
-use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController; // ➕ IMPORT ABSENSI GURU
+use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\App;
 
 // Redirect Halaman Utama langsung ke Login
 Route::get('/', function () {
@@ -40,19 +39,25 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
-    if ($user->role === 'superadmin') {
+    if (!$user) {
+        return redirect()->route('login');
+    }
+
+    $role = strtolower(trim($user->role ?? ''));
+
+    if ($role === 'superadmin') {
         return redirect()->route('superadmin.dashboard');
     } 
 
-    if (in_array($user->role, ['admin', 'admin_sekolah', 'kepsek'])) {
+    if (in_array($role, ['admin', 'admin_sekolah', 'kepsek'], true)) {
         return redirect()->route('admin.dashboard');
     } 
 
-    if ($user->role === 'guru') {
+    if ($role === 'guru') {
         return redirect()->route('guru.dashboard');
     }
 
-    return view('dashboard');
+    return redirect()->route('login')->withErrors(['login' => 'Role pengguna tidak terdaftar dengan benar.']);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
@@ -105,7 +110,7 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
 
-    // ➕ MODUL ABSENSI SISWA OLEH GURU
+    // MODUL ABSENSI SISWA OLEH GURU
     Route::get('/absensi', [GuruAbsensiController::class, 'index'])->name('absensi.index');
     Route::post('/absensi', [GuruAbsensiController::class, 'store'])->name('absensi.store');
     Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
@@ -117,7 +122,7 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::get('/kelas', [GuruSiswaController::class, 'kelasIndex'])->name('kelas.index');
     Route::get('/kelas/{id}', [GuruSiswaController::class, 'kelasShow'])->name('kelas.show');
 
-    // Route Cetak Rekap Jurnal
+    // Route Cetak Rekap Jurnal (Ditaruh sebelum resource)
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
 });
@@ -135,30 +140,34 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 
-Route::get('/run-migrate', function () {
-    // Diproteksi dengan passcode sederhana '12345'
-    if (request('key') !== '12345') {
-        abort(403, 'Akses ditolak: Key salah!');
-    }
+// ==========================================
+// ROUTE UTILITY (Hanya Aktif di Environment Local)
+// ==========================================
+if (app()->environment('local')) {
+    Route::get('/run-migrate', function () {
+        if (request('key') !== '12345') {
+            abort(403, 'Akses ditolak: Key salah!');
+        }
 
-    try {
-        Artisan::call('migrate:fresh', [
-            '--force' => true,
-            '--seed'  => true,
-        ]);
+        try {
+            Artisan::call('migrate:fresh', [
+                '--force' => true,
+                '--seed'  => true,
+            ]);
 
-        return '
-            <div style="font-family: sans-serif; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
-                <h2 style="margin-top:0;">✅ Migration & Seeding Berhasil!</h2>
-                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . Artisan::output() . '</pre>
-            </div>
-        ';
-    } catch (\Exception $e) {
-        return '
-            <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
-                <h2 style="margin-top:0;">❌ Migration Gagal!</h2>
-                <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . $e->getMessage() . '</pre>
-            </div>
-        ';
-    }
-});
+            return '
+                <div style="font-family: sans-serif; padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
+                    <h2 style="margin-top:0;">✅ Migration & Seeding Berhasil!</h2>
+                    <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . Artisan::output() . '</pre>
+                </div>
+            ';
+        } catch (\Exception $e) {
+            return '
+                <div style="font-family: sans-serif; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b;">
+                    <h2 style="margin-top:0;">❌ Migration Gagal!</h2>
+                    <pre style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; overflow-x: auto;">' . $e->getMessage() . '</pre>
+                </div>
+            ';
+        }
+    });
+}

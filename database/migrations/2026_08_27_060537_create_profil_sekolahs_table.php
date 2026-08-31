@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('mapels', function (Blueprint $table) {
+        Schema::create('profil_sekolahs', function (Blueprint $table) {
             $table->id();
-            // Tambahkan sekolah_id untuk multi-tenant/sekolah
-            $table->foreignId('sekolah_id')->nullable()->constrained('sekolahs')->onDelete('cascade');
-            $table->string('kode_mapel')->nullable();
-            $table->string('nama_mapel');
             $table->timestamps();
         });
     }
@@ -26,6 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('mapels');
+        Schema::dropIfExists('profil_sekolahs');
     }
 };
