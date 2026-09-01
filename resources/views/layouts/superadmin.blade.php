@@ -54,6 +54,13 @@
     ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
+
+    /* Pattern Ombak CSS untuk Sidebar */
+    .bg-wave-pattern {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1000' opacity='0.08'%3E%3Cpath fill='%2310b981' d='M0 192l48 16c48 16 144 48 240 32s192-80 288-96 192 16 240 32l48 16v800H0z'/%3E%3Cpath fill='%23059669' d='M0 480l48 21.3C96 523 192 565 288 544s192-107 288-107 192 64 240 96l48 32v435H0z'/%3E%3C/svg%3E");
+        background-size: cover;
+        background-position: bottom center;
+    }
     </style>
 </head>
 
@@ -61,104 +68,49 @@
 
     <div class="flex h-screen overflow-hidden relative">
 
-        <!-- ================= SIDEBAR ================= -->
-        <aside id="sidebar"
-            class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out">
-
-            <!-- Header Sidebar Superadmin -->
-            <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800 shrink-0">
-                <div class="flex items-center space-x-3">
-                    <!-- ✅ LOGO AMBIL DARI FAVICON -->
-                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
-                    <div>
-                        <span class="text-white font-bold text-base block leading-tight">PANEL UTAMA</span>
-                        <span
-                            class="text-[10px] tracking-wider text-emerald-400 uppercase font-semibold">Superadmin</span>
-                    </div>
-                </div>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white focus:outline-none">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
-
-            <!-- Navigasi Menu -->
-            <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5">
-                <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pusat Kontrol</p>
-
-                <!-- Dashboard Superadmin -->
-                <a href="{{ route('superadmin.dashboard') }}"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('superadmin.dashboard') ? 'bg-emerald-600 text-white font-semibold' : 'hover:bg-slate-800 hover:text-white' }}">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span class="text-sm">Dashboard Pusat</span>
-                </a>
-
-                <!-- Dropdown Kelola Sekolah & Kepsek -->
-                <div class="space-y-1">
-                    <button onclick="toggleDropdown('dropdown-sekolah', 'arrow-sekolah')"
-                        class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none">
-                        <div class="flex items-center space-x-3">
-                            <i
-                                class="fa-solid fa-school-flag text-slate-400 group-hover:text-emerald-500 transition"></i>
-                            <span class="font-medium text-sm">Kelola Sekolah</span>
-                        </div>
-                        <i id="arrow-sekolah"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ (request()->routeIs('superadmin.kepsek.*') || request()->routeIs('superadmin.sekolah.*')) ? 'rotate-180' : '' }}"></i>
-                    </button>
-
-                    <!-- Submenu Dropdown -->
-                    <div id="dropdown-sekolah"
-                        class="{{ (request()->routeIs('superadmin.kepsek.*') || request()->routeIs('superadmin.sekolah.*')) ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
-
-                        <!-- Menu 1: View / Lihat Daftar Semua Sekolah -->
-                        <a href="{{ route('superadmin.sekolah.index') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.sekolah.index') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-list-ul text-xs mr-2"></i> Daftar Semua Sekolah
-                        </a>
-
-                        <!-- Menu 2: Tambah Sekolah Baru -->
-                        <a href="{{ route('superadmin.sekolah.create') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.sekolah.create') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-plus text-xs mr-2"></i> Tambah Sekolah
-                        </a>
-
-                        <!-- Menu 3: Tambah Kepala Sekolah / Akun -->
-                        <a href="{{ route('superadmin.kepsek.create') }}"
-                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.kepsek.create') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-user-plus text-xs mr-2"></i> Tambah Kepsek / Akun
-                        </a>
-                    </div>
+                <!-- ================= SIDEBAR ================= -->
+        <aside class="w-64 bg-slate-900 text-white min-h-screen flex flex-col justify-between p-4 flex-shrink-0 z-20">
+            <div>
+                <!-- Logo / Header Sidebar -->
+                <div class="px-3 py-4 mb-4 border-b border-slate-800">
+                    <h2 class="text-lg font-bold tracking-wider text-white uppercase">Panel Utama</h2>
+                    <p class="text-[10px] text-emerald-400 font-semibold tracking-widest uppercase">Superadmin</p>
                 </div>
 
-                <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2">Monitoring
-                    Lintas Role</p>
+                <!-- Menu Navigasi -->
+                <nav class="space-y-1">
+                    <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Pusat Kontrol</p>
+                    
+                    <a href="{{ route('superadmin.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500 text-white shadow-sm">
+                        <i class="fa-solid fa-chart-pie text-sm"></i> Dashboard Pusat
+                    </a>
 
-                <!-- Akses Cepat Mode Admin Sekolah -->
-                <a href="{{ route('admin.dashboard') }}"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition hover:bg-slate-800 hover:text-white text-slate-400">
-                    <i class="fa-solid fa-building-columns text-slate-400"></i>
-                    <span class="text-sm">Lihat Mode Admin</span>
-                </a>
+                    <div class="pt-4">
+                        <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Kelola Sekolah</p>
+                        <!-- Tambahkan link menu sekolah Anda di sini -->
+                    </div>
 
-                <!-- Akses Cepat Mode Guru -->
-                <a href="{{ route('guru.dashboard') }}"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition hover:bg-slate-800 hover:text-white text-slate-400">
-                    <i class="fa-solid fa-chalkboard-user text-slate-400"></i>
-                    <span class="text-sm">Lihat Mode Guru</span>
-                </a>
+                    <div class="pt-4">
+                        <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Monitoring Lintas Role</p>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:text-white transition">
+                            <i class="fa-solid fa-user-shield"></i> Lihat Mode Admin
+                        </a>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:text-white transition">
+                            <i class="fa-solid fa-chalkboard-user"></i> Lihat Mode Guru
+                        </a>
+                    </div>
+                </nav>
             </div>
 
-            <!-- Footer Sidebar (Tombol Logout) -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50 shrink-0">
+            <!-- Tombol Logout -->
+            <div class="pt-4 border-t border-slate-800">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit"
-                        class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium text-rose-400 bg-rose-500/10 hover:bg-rose-600 hover:text-white transition duration-150 ease-in-out">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        <span>Keluar / Logout</span>
+                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl border border-rose-500/20 transition">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar / Logout
                     </button>
                 </form>
             </div>
-
         </aside>
 
         <!-- Sidebar Overlay (Mobile) -->
@@ -177,8 +129,7 @@
                     </button>
 
                     <div class="flex items-center space-x-2 text-sm text-gray-500">
-                        <span
-                            class="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-xs">SUPERADMIN</span>
+                        <span class="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-xs">SUPERADMIN</span>
                         <i class="fa-solid fa-chevron-right text-xs"></i>
                         <span class="text-gray-400">@yield('page_title', 'Dashboard Pusat')</span>
                     </div>
@@ -187,19 +138,17 @@
                 <!-- User Info Ringkas -->
                 <div class="flex items-center space-x-3">
                     <div class="text-right hidden sm:block">
-                        <span
-                            class="text-sm font-semibold text-slate-700 block leading-tight">{{ Auth::user()->name ?? 'Super Admin' }}</span>
+                        <span class="text-sm font-semibold text-slate-700 block leading-tight">{{ Auth::user()->name ?? 'Super Admin' }}</span>
                         <span class="text-[11px] text-slate-400">System Administrator</span>
                     </div>
-                    <div
-                        class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-emerald-100">
+                    <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-emerald-100">
                         {{ strtoupper(substr(Auth::user()->name ?? 'S', 0, 1)) }}
                     </div>
                 </div>
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto p-6 md:p-8">
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-wave-light">
                 @yield('content')
             </main>
 
@@ -212,7 +161,6 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    // 1. Fungsi Buka / Tutup Sidebar (Mobile)
     function toggleSidebar() {
         if (sidebar.classList.contains('-translate-x-full')) {
             sidebar.classList.remove('-translate-x-full');
@@ -223,7 +171,6 @@
         }
     }
 
-    // 2. Fungsi Buka / Tutup Dropdown Menu
     function toggleDropdown(id, arrowId) {
         const dropdown = document.getElementById(id);
         const arrow = document.getElementById(arrowId);
@@ -234,7 +181,6 @@
         }
     }
 
-    // 3. Resizing Handler (Mobile Reset)
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768) {
             sidebar.classList.remove('-translate-x-full');
@@ -244,13 +190,12 @@
         }
     });
 
-    // 4. Alert Flash Notification
+    // Flash Notification Handlers
     @if(session('success'))
     Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
-        text: '{{ session('
-        success ') }}',
+        text: '{{ session('success') }}',
         showConfirmButton: false,
         timer: 2000
     });
@@ -260,8 +205,7 @@
     Swal.fire({
         icon: 'error',
         title: 'Oops...',
-        text: '{{ session('
-        error ') }}',
+        text: '{{ session('error') }}',
     });
     @endif
     </script>

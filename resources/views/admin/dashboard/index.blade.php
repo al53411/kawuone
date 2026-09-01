@@ -8,7 +8,7 @@
 @php
     $hour = date('H');
     $salam = $hour < 11 ? 'Pagi' : ($hour < 15 ? 'Siang' : ($hour < 19 ? 'Sore' : 'Malam'));
-@endphp 
+@endphp
 
 <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <div>
@@ -20,8 +20,8 @@
             {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.
         </p>
     </div>
-    <div class="flex items-center gap-2 text-xs font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm self-start md:self-auto">
-        <i class="fa-regular font-bold fa-calendar-days text-blue-600"></i>
+    <div class="flex items-center gap-2 text-xs font-medium text-gray-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-gray-200/80 shadow-sm self-start md:self-auto">
+        <i class="fa-regular font-bold fa-calendar-days text-emerald-600"></i>
         <span>{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</span>
     </div>
 </div>
@@ -30,7 +30,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
     {{-- Total Siswa --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-between hover:shadow-md transition">
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:shadow-md transition">
         <div class="space-y-2">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Siswa</p>
             <h3 class="text-3xl font-bold text-gray-900">{{ number_format($total_siswa ?? 0) }}</h3>
@@ -44,7 +44,7 @@
     </div>
 
     {{-- Total Guru --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-between hover:shadow-md transition">
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:shadow-md transition">
         <div class="space-y-2">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Guru</p>
             <h3 class="text-3xl font-bold text-gray-900">{{ number_format($total_guru ?? 0) }}</h3>
@@ -56,7 +56,7 @@
     </div>
 
     {{-- Total Kelas --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-between hover:shadow-md transition">
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:shadow-md transition">
         <div class="space-y-2">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Kelas</p>
             <h3 class="text-3xl font-bold text-gray-900">{{ number_format($total_kelas ?? 0) }}</h3>
@@ -68,7 +68,7 @@
     </div>
 
     {{-- Status Sistem --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-between hover:shadow-md transition">
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-between hover:shadow-md transition">
         <div class="space-y-2">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status Sistem</p>
             <h3 class="text-xl font-bold text-emerald-600 flex items-center gap-2 mt-2">
@@ -90,7 +90,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     {{-- Fitur Akses Cepat --}}
-    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="lg:col-span-2 bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
             <div>
                 <h2 class="text-lg font-bold text-gray-800">Akses Cepat Fitur</h2>
@@ -102,7 +102,7 @@
             {{-- Kelola Siswa --}}
             @if(Route::has('admin.siswa.index'))
             <a href="{{ route('admin.siswa.index') }}"
-                class="p-4 border border-gray-200 rounded-xl hover:bg-blue-50/50 hover:border-blue-200 transition group flex items-start space-x-4">
+                class="p-4 border border-gray-200/80 rounded-xl hover:bg-blue-50/50 hover:border-blue-200 transition group flex items-start space-x-4">
                 <div class="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition shrink-0">
                     <i class="fa-solid fa-users text-lg"></i>
                 </div>
@@ -116,7 +116,7 @@
             {{-- Kelola Guru --}}
             @if(Route::has('admin.guru.index'))
             <a href="{{ route('admin.guru.index') }}"
-                class="p-4 border border-gray-200 rounded-xl hover:bg-indigo-50/50 hover:border-indigo-200 transition group flex items-start space-x-4">
+                class="p-4 border border-gray-200/80 rounded-xl hover:bg-indigo-50/50 hover:border-indigo-200 transition group flex items-start space-x-4">
                 <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition shrink-0">
                     <i class="fa-solid fa-id-card text-lg"></i>
                 </div>
@@ -130,7 +130,7 @@
             {{-- Kelola Kelas --}}
             @if(Route::has('admin.kelas.index'))
             <a href="{{ route('admin.kelas.index') }}"
-                class="p-4 border border-gray-200 rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 transition group flex items-start space-x-4">
+                class="p-4 border border-gray-200/80 rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 transition group flex items-start space-x-4">
                 <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition shrink-0">
                     <i class="fa-solid fa-door-open text-lg"></i>
                 </div>
@@ -144,7 +144,7 @@
             {{-- Pengaturan Profil Sekolah --}}
             @if(Route::has('admin.sekolah.index'))
             <a href="{{ route('admin.sekolah.index') }}"
-                class="p-4 border border-gray-200 rounded-xl hover:bg-amber-50/50 hover:border-amber-200 transition group flex items-start space-x-4">
+                class="p-4 border border-gray-200/80 rounded-xl hover:bg-amber-50/50 hover:border-amber-200 transition group flex items-start space-x-4">
                 <div class="p-3 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition shrink-0">
                     <i class="fa-solid fa-sliders text-lg"></i>
                 </div>
@@ -159,7 +159,7 @@
     </div>
 
     {{-- Feed Aktivitas Sistem Dinamis --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-between">
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
         <div>
             <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                 <h2 class="text-lg font-bold text-gray-800">Aktivitas Terakhir</h2>
@@ -169,7 +169,7 @@
             <div class="space-y-4">
                 @forelse($aktivitas ?? [] as $item)
                 <div class="flex items-start space-x-3 text-sm">
-                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
                     <div class="flex-1">
                         <p class="text-gray-700 font-medium leading-snug">
                             {{ $item?->keterangan ?? $item?->deskripsi ?? 'Aktivitas Sistem' }}
@@ -180,9 +180,8 @@
                     </div>
                 </div>
                 @empty
-                {{-- Fallback jika variabel $aktivitas kosong dari Controller --}}
                 <div class="flex items-start space-x-3 text-sm">
-                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
                     <div>
                         <p class="text-gray-700 font-medium">Sistem siap digunakan</p>
                         <span class="text-xs text-gray-400">Baru saja</span>
@@ -200,7 +199,7 @@
         </div>
 
         <div class="mt-6 pt-4 border-t border-gray-100">
-            <a href="#" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center justify-center gap-1">
+            <a href="#" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center justify-center gap-1">
                 Lihat Semua Log <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </a>
         </div>
