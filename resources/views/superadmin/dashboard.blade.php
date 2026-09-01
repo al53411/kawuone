@@ -128,7 +128,7 @@
                 @forelse($sekolahs as $index => $sekolah)
                 <tr class="hover:bg-blue-50/30 transition-colors duration-150">
                     <td class="px-6 py-4 text-xs font-bold text-gray-400">
-                        {{ String::padLeft(($sekolahs->firstItem() ?? 1) + $index, 2, '0') }}
+                        {{ \Illuminate\Support\Str::padLeft(($sekolahs->firstItem() ?? 1) + $index, 2, '0') }}
                     </td>
                     <td class="px-6 py-4">
                         <div class="font-bold text-gray-900">{{ $sekolah->nama_sekolah }}</div>
