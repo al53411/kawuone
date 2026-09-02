@@ -16,11 +16,7 @@ class SiswaSeeder extends Seeder
         // Pastikan kelas ditemukan sebelum membuat siswa
         if ($kelas) {
             Siswa::create([
-                'nisn'          => '0123456789',
-                'nama_siswa'    => 'Randi Perkasa',
-                'kelas_id'      => $kelas->id, // ✅ Ambil ID kelas secara dinamis
-                'jenis_kelamin' => 'L',
-                'alamat'        => 'Kec. Padas, Ngawi',
+                
             ]);
         }
     }

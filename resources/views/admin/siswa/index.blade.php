@@ -6,7 +6,32 @@
 @section('content')
 <div class="w-full space-y-4 sm:space-y-6">
 
-    <!-- Section Header (Full width & Responsive Gap) -->
+    <!-- Flash Message Notifikasi -->
+    @if(session('success'))
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs sm:text-sm flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs sm:text-sm flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-600 text-base"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    @endif
+
+    <!-- Section Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Manajemen Data Siswa</h1>
@@ -15,9 +40,17 @@
                 {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.
             </p>
         </div>
-        <div class="w-full sm:w-auto">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <!-- Tombol Import Excel -->
+            <button type="button" onclick="document.getElementById('modal-import-siswa').classList.remove('hidden')"
+                class="w-1/2 sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition space-x-2 active:bg-emerald-800 shadow-sm">
+                <i class="fa-solid fa-file-excel text-xs"></i>
+                <span>Import Excel</span>
+            </button>
+
+            <!-- Tombol Tambah Siswa -->
             <a href="{{ route('admin.siswa.create') }}"
-                class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition space-x-2 active:bg-blue-800 shadow-sm">
+                class="w-1/2 sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition space-x-2 active:bg-blue-800 shadow-sm">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Tambah Siswa</span>
             </a>
@@ -76,12 +109,10 @@
             <div class="p-4 hover:bg-gray-50/80 transition-colors">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex items-start gap-3 min-w-0">
-                        <!-- Badge Nomor Urut -->
                         <span class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 mt-0.5">
                             {{ $loop->iteration }}
                         </span>
                         
-                        <!-- Detail Informasi Siswa -->
                         <div class="min-w-0">
                             <h2 class="font-semibold text-gray-900 text-sm leading-snug truncate">
                                 {{ $siswa->nama_siswa ?? $siswa->nama_lengkap ?? '-' }}
@@ -95,13 +126,11 @@
                         </div>
                     </div>
 
-                    <!-- Badge Nama Kelas -->
                     <span class="shrink-0 bg-blue-50 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-md border border-blue-100">
                         {{ $siswa->kelas->nama_kelas ?? '-' }}
                     </span>
                 </div>
 
-                <!-- Tombol Aksi di Mobile -->
                 <div class="flex items-center justify-end gap-2 mt-3 pt-2.5 border-t border-gray-100">
                     <a href="{{ route('admin.siswa.edit', $siswa->id) }}"
                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition"
@@ -190,6 +219,60 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- MODAL IMPORT EXCEL DATA SISWA -->
+<div id="modal-import-siswa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+        <!-- Modal Header -->
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-emerald-600 font-bold text-sm sm:text-base">
+                <i class="fa-solid fa-file-excel text-lg"></i>
+                <span>Import Data Siswa Excel</span>
+            </div>
+            <button type="button" onclick="document.getElementById('modal-import-siswa').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body & Form -->
+    <form action="{{ route('admin.siswa.import') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+        @csrf
+        
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 space-y-2">
+            <div class="flex items-center justify-between">
+                <p class="font-semibold">Format Kolom Header Excel:</p>
+                <!-- Tombol Download Template CSV -->
+                <a href="{{ asset('templates/template_import_siswa.xlsx') }}" 
+                download="template_import_siswa.xlsx" 
+                class="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-medium px-2 py-1 rounded transition">
+                    <i class="fa-solid fa-download text-[10px]"></i>
+                    <span>Download Template</span>
+                </a>
+            </div>
+            <p><code>nisn</code>, <code>nama_siswa</code>, <code>jenis_kelamin</code> (L/P), <code>kelas_id</code>, <code>alamat</code>.</p>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pilih File (.xlsx / .xls / .csv)</label>
+            <input type="file" name="file" required accept=".xlsx, .xls, .csv"
+                class="block w-full text-xs text-gray-500 border border-gray-200 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition">
+        </div>
+
+        <!-- Modal Footer Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+            <button type="button" onclick="document.getElementById('modal-import-siswa').classList.add('hidden')" 
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs sm:text-sm rounded-lg transition">
+                Batal
+            </button>
+            <button type="submit" 
+                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-upload text-xs"></i>
+                <span>Upload & Import</span>
+            </button>
+        </div>
+    </form>
     </div>
 </div>
 @endsection

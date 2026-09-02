@@ -61,7 +61,7 @@ Route::get('/dashboard', function () {
     return redirect()->route('login')->withErrors(['login' => 'Role pengguna tidak terdaftar dengan benar.']);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-
+Route::post('/siswa/import', [App\Http\Controllers\Admin\SiswaController::class, 'import'])->name('siswa.import');
 // ==========================================
 // GROUP ROUTE KHUSUS SUPERADMIN
 // ==========================================
@@ -98,6 +98,9 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
 
     // Cetak Absensi Mapel
     Route::get('/absensi/cetak-mapel', [CetakAbsensiMapelController::class, 'index'])->name('absensi.cetak-mapel');
+
+    // Route Import Siswa (Ditaruh di sini agar mendapat prefix name 'admin.' dan path '/admin')
+    Route::post('/siswa/import', [AdminSiswaController::class, 'import'])->name('siswa.import');
 
     // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);

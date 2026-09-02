@@ -87,7 +87,6 @@ class SiswaController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                // Mendukung pencarian kolom 'nama_siswa' maupun 'nama_lengkap' jika ada fallback
                 if (Schema::hasColumn('siswas', 'nama_siswa')) {
                     $q->where('nama_siswa', 'like', "%{$search}%");
                 } else {
@@ -264,5 +263,170 @@ class SiswaController extends Controller
 
         return redirect()->route('admin.siswa.index')
             ->with('success', 'Data siswa berhasil dihapus.');
+    }
+
+    /**
+     * Memproses import data siswa dari file Excel (.xlsx) atau CSV.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120',
+        ], [
+            'file.required' => 'File Excel/CSV wajib diunggah!',
+        ]);
+
+        $sekolahId = $this->getSekolahId();
+        $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $rows = [];
+
+        try {
+            if (in_array($extension, ['csv', 'txt'])) {
+                $rows = $this->parseCsvFile($file->getPathname());
+            } elseif ($extension === 'xlsx') {
+                $rows = $this->parseXlsxFile($file->getPathname());
+            } else {
+                return redirect()->back()->with('error', 'Format file tidak didukung. Harap gunakan format .xlsx atau .csv');
+            }
+
+            if (empty($rows) || count($rows) < 2) {
+                return redirect()->back()->with('error', 'File kosong atau tidak memiliki data!');
+            }
+
+            // Ambil header baris pertama
+            $rawHeader = array_shift($rows);
+            $header = array_map(function ($h) {
+                return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', (string)$h)));
+            }, $rawHeader);
+
+            // Mapping nama kelas ke kelas_id
+            $kelasMap = Kelas::when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
+                $q->where('sekolah_id', $sekolahId);
+            })->pluck('id', 'nama_kelas')->toArray();
+
+            $imported = 0;
+            $skipped = 0;
+
+            foreach ($rows as $row) {
+                if (empty(array_filter($row))) continue;
+
+                $dataRow = [];
+                foreach ($header as $index => $colName) {
+                    $dataRow[$colName] = isset($row[$index]) ? trim((string)$row[$index]) : '';
+                }
+
+                $nisn = $dataRow['nisn'] ?? '';
+                $namaSiswa = $dataRow['nama_siswa'] ?? '';
+                $jenisKelamin = strtoupper($dataRow['jenis_kelamin'] ?? 'L');
+                $kelasInput = $dataRow['kelas_id'] ?? $dataRow['nama_kelas'] ?? '';
+                $alamat = $dataRow['alamat'] ?? null;
+
+                // Cari kelas_id berdasarkan ID atau Nama Kelas
+                $kelasId = null;
+                if (is_numeric($kelasInput)) {
+                    $kelasId = (int)$kelasInput;
+                } elseif (isset($kelasMap[$kelasInput])) {
+                    $kelasId = $kelasMap[$kelasInput];
+                }
+
+                if (!empty($nisn) && !empty($namaSiswa) && !empty($kelasId)) {
+                    $payload = [
+                        'nama_siswa'    => $namaSiswa,
+                        'jenis_kelamin' => in_array($jenisKelamin, ['L', 'P']) ? $jenisKelamin : 'L',
+                        'kelas_id'      => $kelasId,
+                        'alamat'        => $alamat ?: null,
+                    ];
+
+                    if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
+                        $payload['sekolah_id'] = $sekolahId;
+                    }
+
+                    Siswa::updateOrCreate(['nisn' => $nisn], $payload);
+                    $imported++;
+                } else {
+                    $skipped++;
+                }
+            }
+
+            if ($imported === 0) {
+                return redirect()->back()->with('error', 'Gagal memproses data! Pastikan kolom nisn, nama_siswa, dan kelas_id/nama_kelas terisi sesuai format.');
+            }
+
+            return redirect()->route('admin.siswa.index')
+                ->with('success', "Berhasil mengimport {$imported} data siswa." . ($skipped > 0 ? " ({$skipped} baris terlewat)" : ""));
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengolah file: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Parser Native CSV
+     */
+    private function parseCsvFile($filepath)
+    {
+        $content = file_get_contents($filepath);
+        $content = preg_replace('/^\xFF\xFE|\xFE\xFF|\xEF\xBB\xBF/', '', $content);
+        $lines = array_filter(explode("\n", str_replace("\r", "", $content)));
+        
+        if (empty($lines)) return [];
+
+        $delimiter = (strpos($lines[0], ';') !== false) ? ';' : ',';
+        $rows = [];
+        foreach ($lines as $line) {
+            if (trim($line) !== '') {
+                $rows[] = str_getcsv($line, $delimiter);
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * Parser Native XLSX (Tanpa Library External)
+     */
+    private function parseXlsxFile($filepath)
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($filepath) !== true) {
+            return [];
+        }
+
+        // Shared strings
+        $sharedStrings = [];
+        if (($index = $zip->locateName('xl/sharedStrings.xml')) !== false) {
+            $xmlStr = $zip->getFromIndex($index);
+            $xml = simplexml_load_string($xmlStr);
+            foreach ($xml->si as $val) {
+                $sharedStrings[] = (string)($val->t ?? $val->r->t ?? '');
+            }
+        }
+
+        // Sheet 1
+        $sheetXmlStr = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+
+        if (!$sheetXmlStr) return [];
+
+        $xml = simplexml_load_string($sheetXmlStr);
+        $rows = [];
+
+        foreach ($xml->sheetData->row as $row) {
+            $rowCells = [];
+            foreach ($row->c as $cell) {
+                $cellValue = (string)$cell->v;
+                $cellType = (string)$cell['t'];
+
+                if ($cellType === 's' && isset($sharedStrings[(int)$cellValue])) {
+                    $cellValue = $sharedStrings[(int)$cellValue];
+                }
+
+                $rowCells[] = $cellValue;
+            }
+            $rows[] = $rowCells;
+        }
+
+        return $rows;
     }
 }

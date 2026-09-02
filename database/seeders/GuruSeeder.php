@@ -26,32 +26,6 @@ class GuruSeeder extends Seeder
                 'jabatan'             => 'Guru Kelas',
                 'pendidikan_terakhir' => 'S-1',
             ],
-            [
-                'nik'                 => '3515011503920002',
-                'nama_lengkap'        => 'Budi Santoso, S.Pd.',
-                'tempat_lahir'        => 'Surabaya',
-                'tanggal_lahir'       => '1992-03-15',
-                'jenis_kelamin'       => 'L',
-                'nama_ibu_kandung'    => 'Sri Rahayu',
-                'nip'                 => '199203152019031002',
-                'status_kepegawaian'  => 'PNS',
-                'golongan'            => 'III/a',
-                'jabatan'             => 'Guru Penjasorkes',
-                'pendidikan_terakhir' => 'S-1',
-            ],
-            [
-                'nik'                 => '3515011009920003',
-                'nama_lengkap'        => 'Siti Nurhaliza, S.Pd.',
-                'tempat_lahir'        => 'Madiun',
-                'tanggal_lahir'       => '1992-09-10',
-                'jenis_kelamin'       => 'P',
-                'nama_ibu_kandung'    => 'Sumarni',
-                'nip'                 => '199209102023211001',
-                'status_kepegawaian'  => 'GTT',
-                'golongan'            => null,
-                'jabatan'             => 'Guru Bahasa Inggris',
-                'pendidikan_terakhir' => 'S-1',
-            ],
         ];
 
         foreach ($gurus as $data) {
