@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
 use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController;
 use App\Http\Controllers\Superadmin\UserController;
+use App\Http\Controllers\Superadmin\KepsekController; // <-- DITAMBAHKAN (Di-import)
 
 // Import Controller Admin Sekolah
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -67,11 +68,17 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperadminDashboardController::class, 'index'])->name('dashboard');
 
+    // Route Manajemen Data Kepala Sekolah
+    Route::get('/kepsek', [KepsekController::class, 'index'])->name('kepsek.index');
+    Route::get('/kepsek/create', [KepsekController::class, 'create'])->name('kepsek.create'); // <-- TAMBAHKAN INI
+    Route::post('/kepsek', [KepsekController::class, 'store'])->name('kepsek.store');           // <-- TAMBAHKAN INI
+    Route::post('/kepsek/{id}/reset-password', [KepsekController::class, 'resetPassword'])->name('kepsek.reset-password');
+
     // CRUD Sekolah oleh Superadmin
     Route::resource('sekolah', SuperadminSekolahController::class);
 
-    // CRUD Kepala Sekolah / Management Account oleh Superadmin
-    Route::resource('kepsek', UserController::class);
+    // CRUD Management Account User oleh Superadmin
+    Route::resource('users', UserController::class);
 });
 
 
