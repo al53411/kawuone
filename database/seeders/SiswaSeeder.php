@@ -10,19 +10,17 @@ class SiswaSeeder extends Seeder
 {
     public function run(): void
     {
-        // Cari kelas pertama yang ada di DB
         $kelas = Kelas::first();
 
-        if ($kelas) {
-            Siswa::updateOrCreate(
-                ['nisn' => '0123456789'],
-                [
-                    'nama_siswa'    => 'Randi Perkasa',
-                    'jenis_kelamin' => 'L',
-                    'kelas_id'      => $kelas->id,
-                    'alamat'        => 'Jl. Raya Kawu No. 1',
-                ]
-            );
-        }
+        // Ambil ID kelas pertama, jika tidak ada berikan default 1
+        $kelasId = $kelas ? $kelas->id : 1;
+
+        Siswa::create([
+            'nisn'          => '0012345678',
+            'nama_siswa'    => 'Ahmad Dahlan', // <-- Pastikan key ini ada dan tidak NULL
+            'jenis_kelamin' => 'L',
+            'kelas_id'      => $kelasId,
+            'alamat'        => 'Jl. Raya Kawu No. 1',
+        ]);
     }
 }

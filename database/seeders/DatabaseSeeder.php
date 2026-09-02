@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
@@ -13,17 +12,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Matikan pengecekan Foreign Key sementara
+        // 1. Matikan Foreign Key Constraint
         Schema::disableForeignKeyConstraints();
 
+        // 2. Jalankan seeder dengan urutan yang tepat
         $this->call([
             UserSeeder::class,
+            KelasSeeder::class, // <-- Buat Kelas terlebih dahulu
             GuruSeeder::class,
-            KelasSeeder::class,
             SiswaSeeder::class,
         ]);
 
-        // Aktifkan kembali pengecekan Foreign Key
+        // 3. Aktifkan kembali Foreign Key Constraint
         Schema::enableForeignKeyConstraints();
     }
 }
