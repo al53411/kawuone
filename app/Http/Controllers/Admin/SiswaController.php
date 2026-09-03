@@ -301,10 +301,15 @@ class SiswaController extends Controller
                 return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', (string)$h)));
             }, $rawHeader);
 
-            // Mapping nama kelas ke kelas_id
-            $kelasMap = Kelas::when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
+            // Mapping nama kelas ke kelas_id (Case Insensitive)
+            $kelasMapRaw = Kelas::when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
                 $q->where('sekolah_id', $sekolahId);
             })->pluck('id', 'nama_kelas')->toArray();
+
+            $kelasMap = [];
+            foreach ($kelasMapRaw as $namaKls => $idKls) {
+                $kelasMap[strtolower(trim($namaKls))] = $idKls;
+            }
 
             $imported = 0;
             $skipped = 0;
@@ -320,18 +325,25 @@ class SiswaController extends Controller
                 $nisn = $dataRow['nisn'] ?? '';
                 $namaSiswa = $dataRow['nama_siswa'] ?? '';
                 $jenisKelamin = strtoupper($dataRow['jenis_kelamin'] ?? 'L');
-                $kelasInput = $dataRow['kelas_id'] ?? $dataRow['nama_kelas'] ?? '';
+                $kelasInput = strtolower(trim($dataRow['kelas_id'] ?? $dataRow['nama_kelas'] ?? ''));
                 $alamat = $dataRow['alamat'] ?? null;
 
                 // Cari kelas_id berdasarkan ID atau Nama Kelas
                 $kelasId = null;
+
                 if (is_numeric($kelasInput)) {
-                    $kelasId = (int)$kelasInput;
+                    $exists = Kelas::where('id', (int)$kelasInput)
+                        ->when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
+                            $q->where('sekolah_id', $sekolahId);
+                        })->exists();
+
+                    $kelasId = $exists ? (int)$kelasInput : null;
                 } elseif (isset($kelasMap[$kelasInput])) {
                     $kelasId = $kelasMap[$kelasInput];
                 }
 
-                if (!empty($nisn) && !empty($namaSiswa) && !empty($kelasId)) {
+                // Hanya NISN & Nama Siswa yang Wajib (kelas_id opsional jika null di DB)
+                if (!empty($nisn) && !empty($namaSiswa)) {
                     $payload = [
                         'nama_siswa'    => $namaSiswa,
                         'jenis_kelamin' => in_array($jenisKelamin, ['L', 'P']) ? $jenisKelamin : 'L',
@@ -351,7 +363,7 @@ class SiswaController extends Controller
             }
 
             if ($imported === 0) {
-                return redirect()->back()->with('error', 'Gagal memproses data! Pastikan kolom nisn, nama_siswa, dan kelas_id/nama_kelas terisi sesuai format.');
+                return redirect()->back()->with('error', 'Gagal memproses data! Pastikan kolom nisn dan nama_siswa terisi sesuai format.');
             }
 
             return redirect()->route('admin.siswa.index')
@@ -363,28 +375,7 @@ class SiswaController extends Controller
     }
 
     /**
-     * Parser Native CSV
-     */
-    private function parseCsvFile($filepath)
-    {
-        $content = file_get_contents($filepath);
-        $content = preg_replace('/^\xFF\xFE|\xFE\xFF|\xEF\xBB\xBF/', '', $content);
-        $lines = array_filter(explode("\n", str_replace("\r", "", $content)));
-        
-        if (empty($lines)) return [];
-
-        $delimiter = (strpos($lines[0], ';') !== false) ? ';' : ',';
-        $rows = [];
-        foreach ($lines as $line) {
-            if (trim($line) !== '') {
-                $rows[] = str_getcsv($line, $delimiter);
-            }
-        }
-        return $rows;
-    }
-
-    /**
-     * Parser Native XLSX (Tanpa Library External)
+     * Parser Native XLSX (Presisi Membaca Sel Kosong)
      */
     private function parseXlsxFile($filepath)
     {
@@ -393,7 +384,6 @@ class SiswaController extends Controller
             return [];
         }
 
-        // Shared strings
         $sharedStrings = [];
         if (($index = $zip->locateName('xl/sharedStrings.xml')) !== false) {
             $xmlStr = $zip->getFromIndex($index);
@@ -403,7 +393,6 @@ class SiswaController extends Controller
             }
         }
 
-        // Sheet 1
         $sheetXmlStr = $zip->getFromName('xl/worksheets/sheet1.xml');
         $zip->close();
 
@@ -414,19 +403,52 @@ class SiswaController extends Controller
 
         foreach ($xml->sheetData->row as $row) {
             $rowCells = [];
+            $lastColIndex = 0;
+
             foreach ($row->c as $cell) {
-                $cellValue = (string)$cell->v;
-                $cellType = (string)$cell['t'];
+                preg_match('/[A-Z]+/', (string)$cell['r'], $matches);
+                $colLetter = $matches[0] ?? 'A';
+                
+                $colIndex = 0;
+                for ($i = 0; $i < strlen($colLetter); $i++) {
+                    $colIndex = $colIndex * 26 + (ord($colLetter[$i]) - ord('A')) + 1;
+                }
+                $colIndex--;
+
+                while ($lastColIndex < $colIndex) {
+                    $rowCells[] = '';
+                    $lastColIndex++;
+                }
+
+                $cellValue = (string)($cell->v ?? '');
+                $cellType = (string)($cell['t'] ?? '');
 
                 if ($cellType === 's' && isset($sharedStrings[(int)$cellValue])) {
                     $cellValue = $sharedStrings[(int)$cellValue];
                 }
 
                 $rowCells[] = $cellValue;
+                $lastColIndex++;
             }
+
             $rows[] = $rowCells;
         }
 
+        return $rows;
+    }
+
+    /**
+     * Parser Native CSV
+     */
+    private function parseCsvFile($filepath)
+    {
+        $rows = [];
+        if (($handle = fopen($filepath, 'r')) !== false) {
+            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+                $rows[] = $data;
+            }
+            fclose($handle);
+        }
         return $rows;
     }
 }

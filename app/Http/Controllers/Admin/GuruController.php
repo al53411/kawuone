@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\User;
 use App\Models\Kelas;
+use App\Imports\GuruImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GuruController extends Controller
 {
@@ -26,7 +28,7 @@ class GuruController extends Controller
         // Fitur Search
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
                   ->orWhere('nip', 'like', "%{$search}%")
                   ->orWhere('nik', 'like', "%{$search}%");
@@ -44,16 +46,14 @@ class GuruController extends Controller
         $sekolahKelas = Kelas::where('sekolah_id', $sekolahId)->get();
 
         $gurus->getCollection()->transform(function ($guru) use ($sekolahKelas) {
-            // 1. Cek apakah guru bertindak sebagai Guru Mata Pelajaran
             $jabatanLower = strtolower($guru->jabatan ?? '');
             $jenisGuruLower = strtolower($guru->jenis_guru ?? '');
-            
-            $isGuruMapel = str_contains($jabatanLower, 'mapel') || 
-                           str_contains($jabatanLower, 'mata pelajaran') || 
-                           str_contains($jenisGuruLower, 'mapel') || 
+
+            $isGuruMapel = str_contains($jabatanLower, 'mapel') ||
+                           str_contains($jabatanLower, 'mata pelajaran') ||
+                           str_contains($jenisGuruLower, 'mapel') ||
                            !empty($guru->mata_pelajaran);
 
-            // 2. Cari kelas mana saja yang menugaskan guru ini sebagai Wali Kelas
             $assignedClasses = $sekolahKelas->filter(function ($kelas) use ($guru) {
                 $waliVal = $kelas->wali_kelas ?? null;
                 $guruIdVal = $kelas->guru_id ?? null;
@@ -64,19 +64,18 @@ class GuruController extends Controller
                        ($guru->nama_lengkap && $waliVal == $guru->nama_lengkap);
             });
 
-            // 3. Properti Tambahan untuk dikirim ke Blade View
             $guru->assigned_kelas = $assignedClasses;
             $guru->is_guru_mapel = $isGuruMapel;
 
             if ($isGuruMapel) {
                 $guru->tipe_penugasan = 'guru_mapel';
-                $guru->has_kelas = true; 
+                $guru->has_kelas = true;
             } elseif ($assignedClasses->isNotEmpty()) {
                 $guru->tipe_penugasan = 'wali_kelas';
                 $guru->has_kelas = true;
             } else {
                 $guru->tipe_penugasan = 'none';
-                $guru->has_kelas = false; 
+                $guru->has_kelas = false;
             }
 
             return $guru;
@@ -98,47 +97,37 @@ class GuruController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input
         $validatedData = $request->validate([
-            // Identitas Pribadi (Dukcapil)
             'nik'                 => 'required|digits:16|unique:gurus,nik',
             'nama_lengkap'        => 'required|string|max:255',
             'tempat_lahir'        => 'required|string|max:100',
             'tanggal_lahir'       => 'required|date',
             'jenis_kelamin'       => 'required|in:L,P',
             'nama_ibu_kandung'    => 'required|string|max:255',
-
-            // Status Kepegawaian (BKN)
             'nip'                 => 'nullable|digits:18|unique:gurus,nip',
             'status_kepegawaian'  => 'required|in:PNS,PPPK,GTT,GTY',
             'golongan'            => 'nullable|string|max:10',
             'jabatan'             => 'nullable|string|max:100',
             'jenis_guru'          => 'nullable|string|max:50',
             'mata_pelajaran'      => 'nullable|string|max:100',
-            'tmt_sk'              => 'nullable|date', // ✅ Validasi tipe tanggal
+            'tmt_sk'              => 'nullable|date',
             'mkg_tahun'           => 'nullable|integer|min:0',
             'mkg_bulan'           => 'nullable|integer|min:0|max:11',
-
-            // Kualifikasi & Sertifikasi (Dapodik)
             'pendidikan_terakhir' => 'required|string|max:50',
             'nuptk'               => 'nullable|digits:16|unique:gurus,nuptk',
             'no_serdik'           => 'nullable|string|max:50',
             'nrg'                 => 'nullable|string|max:50',
         ], $this->customErrorMessages());
 
-        // Ubah string kosong "" pada field date menjadi NULL agar tidak terkirim sebagai invalid date di MySQL
         if (empty($validatedData['tmt_sk'])) {
             $validatedData['tmt_sk'] = null;
         }
 
-        // 2. Simpan Data Guru & Akun User dalam Transaction
         DB::transaction(function () use ($validatedData, $request) {
             $identifier = $request->filled('nip') ? $request->nip : $request->nik;
             $userEmail  = $identifier . '@sekolah.id';
+            $sekolahId  = Auth::user()->sekolah_id;
 
-            $sekolahId = Auth::user()->sekolah_id;
-
-            // A. Buat Akun User
             $user = User::create([
                 'name'       => $request->nama_lengkap,
                 'nip'        => $request->nip,
@@ -148,7 +137,6 @@ class GuruController extends Controller
                 'sekolah_id' => $sekolahId,
             ]);
 
-            // B. Simpan Data Guru
             $validatedData['user_id'] = $user->id;
             if (Schema::hasColumn('gurus', 'sekolah_id')) {
                 $validatedData['sekolah_id'] = $sekolahId;
@@ -157,6 +145,74 @@ class GuruController extends Controller
         });
 
         return redirect()->route('admin.guru.index')->with('success', 'Data Guru & Akun User login berhasil ditambahkan!');
+    }
+
+    /**
+     * Mengunduh Template File Excel Import Guru (.xlsx)
+     */
+    public function downloadTemplate()
+    {
+        $filePath = public_path('templates/template_import_guru.xlsx');
+
+        if (file_exists($filePath)) {
+            return response()->download($filePath, 'template_import_guru.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
+        }
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="import_template_guru.csv"',
+        ];
+
+        $columns = [
+            'nik', 'nip', 'nuptk', 'nama_lengkap', 'tempat_lahir',
+            'tanggal_lahir', 'jenis_kelamin', 'nama_ibu_kandung',
+            'status_kepegawaian', 'golongan', 'jabatan', 'jenis_guru',
+            'mata_pelajaran', 'pendidikan_terakhir', 'no_serdik', 'nrg'
+        ];
+
+        $callback = function () use ($columns) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF");
+            fputcsv($file, $columns);
+
+            fputcsv($file, [
+                '3515012345670001', '198501012010011001', '1234567890123456',
+                'Budi Santoso, S.Pd.', 'Surabaya', '1985-01-01', 'L',
+                'Siti Aminah', 'PNS', 'III/a', 'Guru Kelas', 'Guru Kelas',
+                'Tematik', 'S1 Pendidikan', '123456789', '987654321'
+            ]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Memproses Import Data Guru (.xlsx / .xls / .csv)
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ], [
+            'file.required' => 'Silakan pilih file Excel/CSV terlebih dahulu.',
+            'file.mimes'    => 'Format file harus berupa .xlsx, .xls, atau .csv.',
+            'file.max'      => 'Ukuran file maksimal adalah 2MB.',
+        ]);
+
+        try {
+            $sekolahId = Auth::user()->sekolah_id;
+            Excel::import(new GuruImport($sekolahId), $request->file('file'));
+
+            return redirect()->route('admin.guru.index')
+                             ->with('success', 'Data guru berhasil di-import!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                             ->with('error', 'Gagal meng-import data: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -188,21 +244,19 @@ class GuruController extends Controller
             'jabatan'             => 'nullable|string',
             'jenis_guru'          => 'nullable|string',
             'mata_pelajaran'      => 'nullable|string',
-            'tmt_sk'              => 'nullable|date', // ✅ Mencegah error format tahun invalid seperti 20019
+            'tmt_sk'              => 'nullable|date',
             'mkg_tahun'           => 'nullable|integer|min:0',
             'mkg_bulan'           => 'nullable|integer|min:0|max:11',
             'no_serdik'           => 'nullable|string|max:50',
             'nrg'                 => 'nullable|string|max:50',
         ], $this->customErrorMessages());
 
-        // Ubah string kosong "" pada field date menjadi NULL
         if (empty($validatedData['tmt_sk'])) {
             $validatedData['tmt_sk'] = null;
         }
 
         $guru->update($validatedData);
 
-        // Update nama user jika terikat
         if ($guru->user) {
             $guru->user->update(['name' => $request->nama_lengkap]);
         }

@@ -6,7 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
 use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController;
 use App\Http\Controllers\Superadmin\UserController;
-use App\Http\Controllers\Superadmin\KepsekController; // <-- DITAMBAHKAN (Di-import)
+use App\Http\Controllers\Superadmin\KepsekController;
 
 // Import Controller Admin Sekolah
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -61,7 +61,7 @@ Route::get('/dashboard', function () {
     return redirect()->route('login')->withErrors(['login' => 'Role pengguna tidak terdaftar dengan benar.']);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::post('/siswa/import', [App\Http\Controllers\Admin\SiswaController::class, 'import'])->name('siswa.import');
+
 // ==========================================
 // GROUP ROUTE KHUSUS SUPERADMIN
 // ==========================================
@@ -70,8 +70,8 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 
     // Route Manajemen Data Kepala Sekolah
     Route::get('/kepsek', [KepsekController::class, 'index'])->name('kepsek.index');
-    Route::get('/kepsek/create', [KepsekController::class, 'create'])->name('kepsek.create'); // <-- TAMBAHKAN INI
-    Route::post('/kepsek', [KepsekController::class, 'store'])->name('kepsek.store');           // <-- TAMBAHKAN INI
+    Route::get('/kepsek/create', [KepsekController::class, 'create'])->name('kepsek.create');
+    Route::post('/kepsek', [KepsekController::class, 'store'])->name('kepsek.store');
     Route::post('/kepsek/{id}/reset-password', [KepsekController::class, 'resetPassword'])->name('kepsek.reset-password');
 
     // CRUD Sekolah oleh Superadmin
@@ -96,13 +96,17 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     // Reset Password Guru
     Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
 
+    // Import & Template Guru (Menggunakan AdminGuruController sesuai alias)
+    Route::post('/guru/import', [AdminGuruController::class, 'import'])->name('guru.import');
+    Route::get('/guru/template', [AdminGuruController::class, 'downloadTemplate'])->name('guru.template');
+
+    // Import Siswa
+    Route::post('/siswa/import', [AdminSiswaController::class, 'import'])->name('siswa.import');
+
     // Cetak Absensi Mapel
     Route::get('/absensi/cetak-mapel', [CetakAbsensiMapelController::class, 'index'])->name('absensi.cetak-mapel');
 
-    // Route Import Siswa (Ditaruh di sini agar mendapat prefix name 'admin.' dan path '/admin')
-    Route::post('/siswa/import', [AdminSiswaController::class, 'import'])->name('siswa.import');
-
-    // Route Resource Fitur Admin Sekolah
+    // Route Resource Fitur Admin Sekolah (Ditaruh setelah route spesifik)
     Route::resource('absensi', AdminAbsensiController::class);
     Route::resource('guru', AdminGuruController::class);
     Route::resource('kelas', AdminKelasController::class);
@@ -132,7 +136,7 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::get('/kelas', [GuruSiswaController::class, 'kelasIndex'])->name('kelas.index');
     Route::get('/kelas/{id}', [GuruSiswaController::class, 'kelasShow'])->name('kelas.show');
 
-    // Route Cetak Rekap Jurnal (Ditaruh sebelum resource)
+    // Route Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
 });
@@ -151,7 +155,7 @@ require __DIR__.'/auth.php';
 
 
 // ==========================================
-// ROUTE UTILITY (Dapat diakses di Local maupun Production)
+// ROUTE UTILITY
 // ==========================================
 Route::get('/run-migrate', function () {
     if (request('key') !== '12345') {

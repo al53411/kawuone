@@ -32,12 +32,19 @@ return new class extends Migration
             $table->enum('status_kepegawaian', ['PNS', 'PPPK', 'GTT', 'GTY'])->default('PPPK');
             $table->string('golongan')->nullable(); // Contoh: III/a, IX, dsb.
             $table->string('jabatan')->nullable();  // Contoh: Ahli Pertama, Ahli Muda
+            
+            // -------------------------------------------------------------
+            // 3. TUGAS UTAMA & MATA PELAJARAN
+            // -------------------------------------------------------------
+            $table->string('jenis_guru')->nullable();    // Tugas Mengajar / Guru Kelas / Guru Mapel
+            $table->string('mata_pelajaran')->nullable(); // Nama Mata Pelajaran
+
             $table->date('tmt_sk')->nullable();     // Terhitung Mulai Tanggal SK
             $table->integer('mkg_tahun')->default(0); // Masa Kerja Golongan (Tahun)
             $table->integer('mkg_bulan')->default(0); // Masa Kerja Golongan (Bulan)
 
             // -------------------------------------------------------------
-            // 3. KUALIFIKASI & SERTIFIKASI (Dapodik)
+            // 4. KUALIFIKASI & SERTIFIKASI (Dapodik)
             // -------------------------------------------------------------
             $table->string('pendidikan_terakhir')->default('S-1'); // S-1 / D-4
             $table->string('nuptk', 16)->unique()->nullable();
