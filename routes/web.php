@@ -128,6 +128,9 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::get('/absensi', [GuruAbsensiController::class, 'index'])->name('absensi.index');
     Route::post('/absensi', [GuruAbsensiController::class, 'store'])->name('absensi.store');
     Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
+    
+    // PERBAIKAN: Disesuaikan dengan prefix grup dan nama controller
+    Route::get('/absensi/cetak', [GuruAbsensiController::class, 'cetakRekap'])->name('absensi.cetak');
 
     // Rute Siswa khusus modul Guru
     Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);
@@ -139,8 +142,8 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     // Route Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
+    
 });
-
 
 // ==========================================
 // PROFILE MANAGEMENT

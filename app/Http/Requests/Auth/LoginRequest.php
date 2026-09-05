@@ -19,7 +19,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'login' => ['required', 'string'],
+            'login'    => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -27,7 +27,7 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'login.required' => 'Email atau NIP wajib diisi.',
+            'login.required'    => 'Email atau NIP wajib diisi.',
             'password.required' => 'Password wajib diisi.',
         ];
     }
@@ -43,7 +43,7 @@ class LoginRequest extends FormRequest
 
         $credentials = [
             $fieldType => $loginInput,
-            'password' => $this->input('password'),
+            'password'  => $this->input('password'),
         ];
 
         if (! Auth::attempt($credentials, $this->boolean('remember'))) {
@@ -55,6 +55,11 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        // 🟢 Tambahkan flash session 'login_success' untuk memicu animasi sinkronSweetAlert2 di layout
+        $user = Auth::user();
+        session()->flash('login_success', true);
+        session()->flash('user_name', $user->name ?? $user->nama ?? 'Pengguna');
     }
 
     public function ensureIsNotRateLimited(): void
@@ -68,10 +73,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'login' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'login' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
         ]);
     }
 

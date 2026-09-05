@@ -41,16 +41,14 @@ class AuthenticatedSessionController extends Controller
         $user = null;
 
         if (str_contains($loginInput, '@')) {
-            // Jika input berupa Email (Admin / Superadmin / Guru yang input email)
+            // Jika input berupa Email
             $user = User::where('email', $loginInput)->first();
         } else {
-            // Jika input berupa NIP/NIK (Angka saja):
-            // Skenario A: Cari via relasi tabel gurus
+            // Jika input berupa NIP/NIK
             $user = User::whereHas('guru', function ($query) use ($loginInput) {
                 $query->where('nip', $loginInput)->orWhere('nik', $loginInput);
             })->first();
 
-            // Skenario B: Jika tidak ketemu via relasi, baru cek email dengan prefix NIP
             if (!$user) {
                 $user = User::where('email', 'LIKE', $loginInput . '@%')->first();
             }
@@ -61,11 +59,15 @@ class AuthenticatedSessionController extends Controller
             // Login user secara manual
             Auth::login($user, $request->boolean('remember'));
             
-            // Hapus intended URL lama agar tidak mengganggu redirect berdasarkan role
+            // Hapus intended URL lama & regenerasi session ID
             $request->session()->forget('url.intended');
             $request->session()->regenerate();
 
-            // Redirection mutlak berdasarkan role (tanpa memprioritaskan intended URL lama)
+            // 🟢 SET FLASH SESSION DI SINI (Setelah session()->regenerate())
+            session()->flash('login_success', true);
+            session()->flash('user_name', $user->name ?? $user->nama ?? 'Pengguna');
+
+            // Redirection berdasarkan role
             if ($user->role === 'superadmin') {
                 return redirect('/superadmin/dashboard');
             }
