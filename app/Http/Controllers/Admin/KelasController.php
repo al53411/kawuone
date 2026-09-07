@@ -49,17 +49,14 @@ class KelasController extends Controller
         $sekolahId = $this->getSekolahId();
         $kolomNamaGuru = $this->getNamaGuruColumn();
 
-        // 1. Ambil Data Kelas (Sertakan relasi gurus untuk pivot guru_kelas)
+        // 1. Ambil Data Kelas
         $kelasQuery = Kelas::with(['waliKelas', 'siswas', 'gurus']);
         
-        // JIKA YANG LOGIN ADALAH GURU MAPEL / GURU
         if ($user && ($user->isGuru() || $user->role === 'guru')) {
             $guru = $user->guru;
-            
             if ($guru) {
                 $kelasQuery->where(function($q) use ($guru) {
                     $q->where('guru_id', $guru->id);
-                    
                     if (method_exists($guru, 'kelas')) {
                         $kelasIds = $guru->kelas()->pluck('kelas.id')->toArray();
                         $q->orWhereIn('id', $kelasIds);
@@ -67,41 +64,41 @@ class KelasController extends Controller
                 });
             }
         } else {
-            // JIKA ADMIN / SUPERADMIN: Filter berdasarkan sekolah_id
             if ($sekolahId && Schema::hasColumn('kelas', 'sekolah_id')) {
                 $kelasQuery->where(function($q) use ($sekolahId) {
                     $q->where('sekolah_id', $sekolahId)
-                      ->orWhereNull('sekolah_id');
+                    ->orWhereNull('sekolah_id');
                 });
             }
         }
 
+        // Pastikan nama variabel di sini $kelas
         $kelas = $kelasQuery->latest()->get();
 
-        // 2. Ambil Data Siswa
+        // 2. Data Siswa
         $kelasIdsTersedia = $kelas->pluck('id')->toArray();
-
         $siswaQuery = Siswa::with('kelas');
         if (!empty($kelasIdsTersedia)) {
             $siswaQuery->whereIn('kelas_id', $kelasIdsTersedia);
         } else if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
             $siswaQuery->where(function($q) use ($sekolahId) {
                 $q->where('sekolah_id', $sekolahId)
-                  ->orWhereNull('sekolah_id');
+                ->orWhereNull('sekolah_id');
             });
         }
         $siswas = $siswaQuery->latest()->get();
 
-        // 3. Ambil Data Guru untuk Dropdown & Checkbox
+        // 3. Data Guru
         $guruQuery = Guru::query();
         if ($sekolahId && Schema::hasColumn('gurus', 'sekolah_id')) {
             $guruQuery->where(function($q) use ($sekolahId) {
                 $q->where('sekolah_id', $sekolahId)
-                  ->orWhereNull('sekolah_id');
+                ->orWhereNull('sekolah_id');
             });
         }
         $gurus = $guruQuery->orderBy($kolomNamaGuru, 'asc')->get();
 
+        // UBAH 'kelases' MENJADI 'kelas' DI SINI:
         return view('admin.kelas.index', compact('kelas', 'siswas', 'gurus'));
     }
 

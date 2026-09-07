@@ -97,7 +97,7 @@ class SiswaController extends Controller
             });
         }
 
-        $siswas = $query->latest()->get();
+        $siswas = $query->paginate(10);
 
         // FALLBACK: Jika Guru tidak di-assign kelas spesifik dan hasil pencarian/filter awal kosong
         if ($siswas->isEmpty() && !$request->filled('search') && !$request->filled('kelas_id') && $user && ($user->isGuru() || $user->role === 'guru' || $user->guru) && $sekolahId) {

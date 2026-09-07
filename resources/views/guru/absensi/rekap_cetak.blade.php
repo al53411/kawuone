@@ -46,7 +46,7 @@
         <!-- 1. Kop Surat Sekolah -->
         <div class="text-center border-b-2 border-slate-900 pb-3 mb-4">
             <h2 class="text-xl font-bold uppercase tracking-wider text-slate-900">
-                {{ $profilSekolah->nama_sekolah ?? 'SD NEGERI KAWU 1' }}
+                {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.
             </h2>
             <p class="text-xs text-slate-600">
                 {{ $profilSekolah->alamat ?? 'Kecamatan Kedunggalar, Kabupaten Ngawi' }}
@@ -150,7 +150,7 @@
             <p class="font-bold">Kepala Sekolah {{ $profilSekolah->nama_sekolah ?? $profilSekolah->nama ?? '' }}</p>
             <div class="h-16"></div> <!-- Space Tanda Tangan -->
             <p class="font-bold underline uppercase">
-                {{ $kepalaSekolah->nama ?? '.....................................' }}
+                {{ $kepalaSekolah->nama ?? $kepalaSekolah->name ?? '.....................................' }}
             </p>
             <p class="text-[10px] text-slate-600">
                 NIP. {{ $kepalaSekolah->nip ?? '.....................................' }}

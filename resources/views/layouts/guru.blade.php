@@ -9,22 +9,23 @@
     <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIX 1: Import SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <style>
-        /* 1. Kotak Data & Tabel Solid Flat */
         .flat-card {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
         }
 
-        /* 2. Tombol Dropdown Sidebar Flat */
         .flat-dropdown {
             background-color: #0f172a;
             border-left: 3px solid #3b82f6;
         }
 
-        /* 3. Kolom Input Form Flat Sempurna */
         .flat-input {
             background-color: #f8fafc;
             border: 1px solid #cbd5e1;
@@ -40,7 +41,6 @@
             border-color: #3b82f6;
         }
 
-        /* Scrollbar Flat */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -69,10 +69,9 @@
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out">
 
-            <!-- Brand Header (LOGO DARI FAVICON) -->
+            <!-- Brand Header -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800">
                 <div class="flex items-center space-x-3 overflow-hidden">
-                    <!-- ✅ LOGO FAVICON -->
                     <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                     <span class="text-white font-bold text-base truncate">
                         {{ $profilSekolah->nama_sekolah ?? 'SDN Kawu 1' }}
@@ -102,11 +101,17 @@
                             <i class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Data Akademik</span>
                         </div>
+                        <!-- FIX 2: Perbaikan kondisi routeIs -->
                         <i id="arrow-akademik"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*') ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <!-- FIX 2: Perbaikan kondisi hidden/show -->
+                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                        <a href="{{ route('guru.sekolah.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-school text-xs mr-2"></i> Data Sekolah
+                        </a>
                         <a href="{{ route('guru.siswa.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.siswa.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-user-graduate text-xs mr-2"></i> Data Siswa
@@ -115,34 +120,32 @@
                 </div>
 
                 <!-- Dropdown Administrasi Guru -->
-            <div class="space-y-1">
-                <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
-                    class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
-                    <div class="flex items-center space-x-3">
-                        <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
-                        <span class="font-medium text-sm">Administrasi</span>
+                <div class="space-y-1">
+                    <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <span class="font-medium text-sm">Administrasi</span>
+                        </div>
+                        <i id="arrow-administrasi"
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? 'rotate-180' : '' }}"></i>
+                    </button>
+
+                    <div id="dropdown-administrasi" class="{{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                        <a href="{{ route('guru.jurnal.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
+                        </a>
+                        <a href="{{ route('guru.absensi.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
+                        </a>
                     </div>
-                    <i id="arrow-administrasi"
-                        class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? 'rotate-180' : '' }}"></i>
-                </button>
-
-                <div id="dropdown-administrasi" class="{{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
-                    <a href="{{ route('guru.jurnal.index') }}"
-                        class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                        <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
-                    </a>
-                    
-                    <!-- PERBAIKAN: Mengarahkan ke route Guru -->
-                    <a href="{{ route('guru.absensi.index') }}"
-                        class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                        <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
-                    </a>
                 </div>
-            </div>
 
             </div>
 
-            <!-- Profile & Logout di Bagian Bawah Sidebar -->
+            <!-- Profile & Logout Footer -->
             <div class="p-4 border-t border-slate-800 bg-slate-900/50">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3 overflow-hidden">
@@ -207,7 +210,6 @@
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
 
-        // Toggle Sidebar Mobile
         function toggleSidebar() {
             if (sidebar.classList.contains('-translate-x-full')) {
                 sidebar.classList.remove('-translate-x-full');
@@ -218,7 +220,6 @@
             }
         }
 
-        // Toggle Dropdown Menu (Dinamis + Smooth Rotate)
         function toggleDropdown(id, arrowId) {
             const dropdown = document.getElementById(id);
             const arrow = document.getElementById(arrowId);
@@ -232,7 +233,6 @@
             }
         }
 
-        // Auto Adjust Sidebar pada Layar Lebar (Desktop)
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 768) {
                 sidebar.classList.remove('-translate-x-full');
@@ -242,24 +242,24 @@
             }
         });
 
-        // 4. Alert Flash Notification (SweetAlert2)
-    @if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: @json(session('success')),
-        showConfirmButton: false,
-        timer: 2000
-    });
-    @endif
+        // Flash Notification via SweetAlert2
+        @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: @json(session('success')),
+            showConfirmButton: false,
+            timer: 2000
+        });
+        @endif
 
-    @if(session('error'))
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: @json(session('error'))
-    });
-    @endif
+        @if(session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: @json(session('error'))
+        });
+        @endif
     </script>
 </body>
 

@@ -130,6 +130,9 @@ class AbsensiController extends Controller
     /**
      * Menyimpan data absensi siswa oleh Guru
      */
+    /**
+     * Menyimpan data absensi siswa oleh Guru
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -148,7 +151,8 @@ class AbsensiController extends Controller
         $tanggal   = $request->tanggal;
         $mapel     = !empty($request->mapel) ? trim($request->mapel) : null;
         
-        $guruId    = $user?->guru?->id ?? Auth::id();
+        // PERBAIKAN DI SINI: Gunakan user_id dari relasi guru atau langsung Auth::id()
+        $guruId    = $user?->guru?->user_id ?? Auth::id();
 
         $kelas = Kelas::find($request->kelas_id);
         if (!$kelas) {
@@ -184,7 +188,7 @@ class AbsensiController extends Controller
 
                 $updateData = [
                     'kelas_id'   => $finalKelasId,
-                    'guru_id'    => $guruId,
+                    'guru_id'    => $guruId, // Nilai ini sekarang sesuai dengan ID tabel users
                     'status'     => $status,
                     'keterangan' => $data['keterangan'] ?? null,
                 ];

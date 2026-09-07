@@ -110,7 +110,7 @@
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex items-start gap-3 min-w-0">
                         <span class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 mt-0.5">
-                            {{ $loop->iteration }}
+                            {{ $siswas->firstItem() + $index }}
                         </span>
                         
                         <div class="min-w-0">
@@ -175,7 +175,7 @@
                     @forelse($siswas as $index => $siswa)
                     <tr class="hover:bg-gray-50/80 transition">
                         <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-500 text-center font-medium">
-                            {{ $loop->iteration }}
+                            {{ $siswas->firstItem() + $index }}
                         </td>
                         <td class="px-4 sm:px-6 py-4 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap font-mono">
                             {{ $siswa->nisn }}
@@ -219,6 +219,13 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- LINK PAGINATION -->
+        @if($siswas->hasPages())
+        <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+            {{ $siswas->appends(request()->query())->links() }}
+        </div>
+        @endif
     </div>
 </div>
 
@@ -237,42 +244,41 @@
         </div>
 
         <!-- Modal Body & Form -->
-    <form action="{{ route('admin.siswa.import') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
-        @csrf
-        
-        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 space-y-2">
-            <div class="flex items-center justify-between">
-                <p class="font-semibold">Format Kolom Header Excel:</p>
-                <!-- Tombol Download Template CSV -->
-                <a href="{{ asset('templates/template_import_siswa.xlsx') }}" 
-                download="template_import_siswa.xlsx" 
-                class="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-medium px-2 py-1 rounded transition">
-                    <i class="fa-solid fa-download text-[10px]"></i>
-                    <span>Download Template</span>
-                </a>
+        <form action="{{ route('admin.siswa.import') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            @csrf
+            
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <p class="font-semibold">Format Kolom Header Excel:</p>
+                    <a href="{{ asset('templates/template_import_siswa.xlsx') }}" 
+                    download="template_import_siswa.xlsx" 
+                    class="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-medium px-2 py-1 rounded transition">
+                        <i class="fa-solid fa-download text-[10px]"></i>
+                        <span>Download Template</span>
+                    </a>
+                </div>
+                <p><code>nisn</code>, <code>nama_siswa</code>, <code>jenis_kelamin</code> (L/P), <code>kelas_id</code>, <code>alamat</code>.</p>
             </div>
-            <p><code>nisn</code>, <code>nama_siswa</code>, <code>jenis_kelamin</code> (L/P), <code>kelas_id</code>, <code>alamat</code>.</p>
-        </div>
 
-        <div>
-            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pilih File (.xlsx / .xls / .csv)</label>
-            <input type="file" name="file" required accept=".xlsx, .xls, .csv"
-                class="block w-full text-xs text-gray-500 border border-gray-200 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition">
-        </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pilih File (.xlsx / .xls / .csv)</label>
+                <input type="file" name="file" required accept=".xlsx, .xls, .csv"
+                    class="block w-full text-xs text-gray-500 border border-gray-200 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition">
+            </div>
 
-        <!-- Modal Footer Buttons -->
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
-            <button type="button" onclick="document.getElementById('modal-import-siswa').classList.add('hidden')" 
-                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs sm:text-sm rounded-lg transition">
-                Batal
-            </button>
-            <button type="submit" 
-                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition shadow-sm flex items-center gap-1.5">
-                <i class="fa-solid fa-upload text-xs"></i>
-                <span>Upload & Import</span>
-            </button>
-        </div>
-    </form>
+            <!-- Modal Footer Buttons -->
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="document.getElementById('modal-import-siswa').classList.add('hidden')" 
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs sm:text-sm rounded-lg transition">
+                    Batal
+                </button>
+                <button type="submit" 
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-lg transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload text-xs"></i>
+                    <span>Upload & Import</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

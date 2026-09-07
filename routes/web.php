@@ -24,6 +24,7 @@ use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\GuruSiswaController;
 use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
+use App\Http\Controllers\Guru\SekolahController as GuruSekolahController; // <-- DITAMBAHKAN
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -128,9 +129,10 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::get('/absensi', [GuruAbsensiController::class, 'index'])->name('absensi.index');
     Route::post('/absensi', [GuruAbsensiController::class, 'store'])->name('absensi.store');
     Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
-    
-    // PERBAIKAN: Disesuaikan dengan prefix grup dan nama controller
     Route::get('/absensi/cetak', [GuruAbsensiController::class, 'cetakRekap'])->name('absensi.cetak');
+
+    // Rute Profil Sekolah khusus Guru (Read-Only)
+    Route::get('/sekolah', [GuruSekolahController::class, 'index'])->name('sekolah.index'); // <-- PERBAIKAN DISINI
 
     // Rute Siswa khusus modul Guru
     Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);

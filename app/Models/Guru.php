@@ -28,6 +28,8 @@ class Guru extends Model
         'status_kepegawaian',
         'golongan',
         'jabatan',
+        'jenis_guru',
+        'mata_pelajaran',
         'tmt_sk',
         'mkg_tahun',
         'mkg_bulan',
@@ -37,6 +39,16 @@ class Guru extends Model
         'nuptk',
         'no_serdik',
         'nrg',
+    ];
+
+    /**
+     * Casting tipe data otomatis
+     */
+    protected $casts = [
+        'tanggal_lahir' => 'date',
+        'tmt_sk'        => 'date',
+        'mkg_tahun'     => 'integer',
+        'mkg_bulan'     => 'integer',
     ];
 
     /**

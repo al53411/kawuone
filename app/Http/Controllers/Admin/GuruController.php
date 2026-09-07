@@ -23,7 +23,7 @@ class GuruController extends Controller
     {
         $sekolahId = Auth::user()->sekolah_id;
 
-        $query = Guru::where('sekolah_id', $sekolahId);
+        $query = Guru::with('user')->where('sekolah_id', $sekolahId);
 
         // Fitur Search
         if ($request->filled('search')) {
@@ -40,12 +40,10 @@ class GuruController extends Controller
             $query->where('status_kepegawaian', $request->status);
         }
 
-        $gurus = $query->latest()->paginate(10)->withQueryString();
-
-        // --- LOGIKA CEK TUGAS / WALI KELAS / GURU MAPEL ---
         $sekolahKelas = Kelas::where('sekolah_id', $sekolahId)->get();
 
-        $gurus->getCollection()->transform(function ($guru) use ($sekolahKelas) {
+        // Menggunakan method through() agar instance LengthAwarePaginator tetap utuh
+        $gurus = $query->latest()->paginate(10)->withQueryString()->through(function ($guru) use ($sekolahKelas) {
             $jabatanLower = strtolower($guru->jabatan ?? '');
             $jenisGuruLower = strtolower($guru->jenis_guru ?? '');
 
@@ -59,9 +57,9 @@ class GuruController extends Controller
                 $guruIdVal = $kelas->guru_id ?? null;
                 $waliIdVal = $kelas->wali_kelas_id ?? null;
 
-                return in_array($guru->id, [$waliVal, $guruIdVal, $waliIdVal]) ||
-                       in_array($guru->user_id, [$waliVal, $guruIdVal, $waliIdVal]) ||
-                       ($guru->nama_lengkap && $waliVal == $guru->nama_lengkap);
+                return in_array($guru->id, array_filter([$waliVal, $guruIdVal, $waliIdVal])) ||
+                       in_array($guru->user_id, array_filter([$waliVal, $guruIdVal, $waliIdVal])) ||
+                       ($guru->nama_lengkap && $waliVal === $guru->nama_lengkap);
             });
 
             $guru->assigned_kelas = $assignedClasses;
@@ -148,7 +146,7 @@ class GuruController extends Controller
     }
 
     /**
-     * Mengunduh Template File Excel Import Guru (.xlsx)
+     * Mengunduh Template File Excel Import Guru (.xlsx / .csv)
      */
     public function downloadTemplate()
     {
@@ -230,6 +228,8 @@ class GuruController extends Controller
      */
     public function update(Request $request, Guru $guru)
     {
+        $this->authorizeSekolah($guru);
+
         $validatedData = $request->validate([
             'nik'                 => 'required|digits:16|unique:gurus,nik,' . $guru->id,
             'nip'                 => 'nullable|digits:18|unique:gurus,nip,' . $guru->id,
@@ -255,11 +255,16 @@ class GuruController extends Controller
             $validatedData['tmt_sk'] = null;
         }
 
-        $guru->update($validatedData);
+        DB::transaction(function () use ($guru, $validatedData, $request) {
+            $guru->update($validatedData);
 
-        if ($guru->user) {
-            $guru->user->update(['name' => $request->nama_lengkap]);
-        }
+            if ($guru->user) {
+                $guru->user->update([
+                    'name' => $request->nama_lengkap,
+                    'nip'  => $request->nip,
+                ]);
+            }
+        });
 
         return redirect()->route('admin.guru.index')->with('success', 'Data guru berhasil diperbarui!');
     }

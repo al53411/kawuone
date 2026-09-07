@@ -93,8 +93,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <h3 class="font-bold text-gray-900 text-base">{{ $guru->nama_lengkap }}</h3>
-                    <p class="text-xs text-gray-500">L/P: {{ $guru->jenis_kelamin ?? '-' }} • Pend:
-                        {{ $guru->pendidikan_terakhir ?? '-' }}</p>
+                    <p class="text-xs text-gray-500">L/P: {{ $guru->jenis_kelamin ?? '-' }} • Pend: {{ $guru->pendidikan_terakhir ?? '-' }}</p>
                 </div>
                 @php
                 $badgeColor = match(strtoupper($guru->status_kepegawaian ?? '')) {
@@ -211,11 +210,17 @@
                         </span>
                         @elseif($guru->tipe_penugasan === 'wali_kelas')
                         <div class="flex flex-wrap gap-1">
-                            @foreach($guru->assigned_kelas as $k)
-                            <span class="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold rounded-md text-xs inline-flex items-center gap-1">
-                                <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> Wali Kelas {{ $k->nama_kelas }}
-                            </span>
-                            @endforeach
+                            @if(isset($guru->assigned_kelas) && count($guru->assigned_kelas) > 0)
+                                @foreach($guru->assigned_kelas as $k)
+                                <span class="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold rounded-md text-xs inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> Wali Kelas {{ $k->nama_kelas }}
+                                </span>
+                                @endforeach
+                            @else
+                                <span class="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 font-semibold rounded-md text-xs">
+                                    Wali Kelas
+                                </span>
+                            @endif
                         </div>
                         @else
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 font-semibold rounded-md text-xs">
@@ -341,6 +346,16 @@
     </div>
 </div>
 
+<!-- Paginasi -->
+    @if(method_exists($gurus, 'links'))
+    <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-200">
+        {{ $gurus->links() }}
+    </div>
+    @elseif(isset($gurus) && respond_to($gurus, 'render'))
+    <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-200">
+        {{ $gurus->render() }}
+    </div>
+    @endif
 <!-- MODAL IMPORT DATA GURU -->
 <div id="modal-import-guru" class="fixed inset-0 z-50 hidden bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
@@ -399,7 +414,11 @@
         let ttl = (guru.tempat_lahir || '-') + ', ' + (guru.tanggal_lahir || '-');
         document.getElementById('dt-ttl').textContent = ttl;
         
-        document.getElementById('dt-jk').textContent = guru.jenis_kelamin === 'L' ? 'Laki-Laki' : (guru.jenis_kelamin === 'P' ? 'Perempuan' : '-');
+        let jk = '-';
+        if (guru.jenis_kelamin === 'L' || guru.jenis_kelamin === 'Laki-Laki') jk = 'Laki-Laki';
+        if (guru.jenis_kelamin === 'P' || guru.jenis_kelamin === 'Perempuan') jk = 'Perempuan';
+        document.getElementById('dt-jk').textContent = jk;
+
         document.getElementById('dt-ibu').textContent = guru.nama_ibu_kandung || '-';
         document.getElementById('dt-pendidikan').textContent = guru.pendidikan_terakhir || '-';
 

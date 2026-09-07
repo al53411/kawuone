@@ -11,8 +11,7 @@
 </div>
 
 @if(session('success'))
-<div
-    class="mb-6 p-4 bg-green-50 border border-green-300 text-green-800 text-sm rounded flex items-center justify-between">
+<div class="mb-6 p-4 bg-green-50 border border-green-300 text-green-800 text-sm rounded flex items-center justify-between">
     <div>
         <i class="fa-solid fa-circle-check mr-1.5"></i> {{ session('success') }}
     </div>
@@ -35,8 +34,14 @@
             @csrf
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kelas</label>
-                <input type="text" name="nama_kelas" class="w-full px-4 py-2 flat-input border rounded-md"
-                    placeholder="Contoh: Kelas 1, Kelas 2-A" value="{{ old('nama_kelas') }}" required>
+                <select name="nama_kelas" class="w-full px-4 py-2 flat-input bg-white border rounded-md" required>
+                    <option value="">-- Pilih Nama Kelas --</option>
+                    @foreach(['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'] as $opsiKelas)
+                        <option value="{{ $opsiKelas }}" {{ old('nama_kelas') == $opsiKelas ? 'selected' : '' }}>
+                            {{ $opsiKelas }}
+                        </option>
+                    @endforeach
+                </select>
                 @error('nama_kelas')
                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
@@ -48,8 +53,7 @@
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($gurus as $guru)
                     @php
-                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
-                    #'.$guru->id);
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru #'.$guru->id);
                     @endphp
                     <option value="{{ $guru->id }}" {{ old('guru_id') == $guru->id ? 'selected' : '' }}>
                         {{ $namaGuru }}
@@ -67,8 +71,7 @@
                 <div class="space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md bg-gray-50/50">
                     @forelse($gurus as $guru)
                     @php
-                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
-                    #'.$guru->id);
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru #'.$guru->id);
                     @endphp
                     <label class="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
                         <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}"
@@ -179,8 +182,15 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kelas</label>
-                <input type="text" id="edit_nama_kelas" name="nama_kelas"
-                    class="w-full px-4 py-2 border rounded-md flat-input" required>
+                <select id="edit_nama_kelas" name="nama_kelas" class="w-full px-4 py-2 border rounded-md flat-input bg-white" required>
+                    <option value="">-- Pilih Nama Kelas --</option>
+                    @foreach(['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'] as $opsiKelas)
+                        <option value="{{ $opsiKelas }}">{{ $opsiKelas }}</option>
+                    @endforeach
+                </select>
+                @error('nama_kelas')
+                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -189,8 +199,7 @@
                     <option value="">-- Pilih Wali Kelas --</option>
                     @foreach($gurus as $guru)
                     @php
-                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
-                    #'.$guru->id);
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru #'.$guru->id);
                     @endphp
                     <option value="{{ $guru->id }}">{{ $namaGuru }}</option>
                     @endforeach
@@ -203,8 +212,7 @@
                 <div class="space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md bg-gray-50/50">
                     @foreach($gurus as $guru)
                     @php
-                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru
-                    #'.$guru->id);
+                    $namaGuru = $guru->nama_guru ?? $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? ('Guru #'.$guru->id);
                     @endphp
                     <label class="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
                         <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}"
