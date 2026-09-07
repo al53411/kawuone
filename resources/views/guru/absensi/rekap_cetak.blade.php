@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap Absensi {{ $kelas->nama_kelas ?? 'Kelas' }} - {{ $bulan }} {{ $tahun }}</title>
+    <title>Rekap Absensi {{ $kelas->nama_kelas ?? 'Kelas' }} - {{ $bulan }}/{{ $tahun }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @page {
@@ -21,7 +21,14 @@
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans p-4 print:p-0 print:bg-white">
 
-    <!-- Tombol Cetak / Download PDF (Sembunyi saat dicetak) -->
+    @php
+        // Carbon instance untuk format nama bulan Bahasa Indonesia
+        $carbonBulan = \Carbon\Carbon::createFromDate((int)$tahun, (int)$bulan, 1)->locale('id');
+        $namaBulan = $carbonBulan->translatedFormat('F');
+        $jumlahHari = $carbonBulan->daysInMonth;
+    @endphp
+
+    <!-- Tombol Cetak / Kembali (Sembunyi saat dicetak) -->
     <div class="max-w-[297mm] mx-auto mb-4 flex justify-between items-center no-print">
         <a href="{{ route('guru.absensi.rekap', ['kelas_id' => $kelasId, 'bulan' => $bulan, 'tahun' => $tahun]) }}" 
            class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold transition">
@@ -53,19 +60,15 @@
         <div class="flex justify-between items-center text-xs font-semibold text-slate-700 mb-3">
             <div>
                 <p>KELAS : <span class="font-bold text-slate-900">{{ strtoupper($kelas->nama_kelas ?? '-') }}</span></p>
-                <p>SEMESTER : <span class="font-bold text-slate-900">{{ $semester ?? 'Ganjil/Genap' }}</span></p>
+                <p>SEMESTER : <span class="font-bold text-slate-900">{{ $semester ?? 'Ganjil / Genap' }}</span></p>
             </div>
             <div class="text-right">
-                <p>BULAN : <span class="font-bold text-slate-900">{{ strtoupper(DateTime::createFromFormat('!m', (int)$bulan)->format('F')) }} {{ $tahun }}</span></p>
+                <p>BULAN : <span class="font-bold text-slate-900">{{ strtoupper($namaBulan) }} {{ $tahun }}</span></p>
                 <p>TAHUN AJARAN : <span class="font-bold text-slate-900">{{ $tahunAjaran ?? $tahun }}</span></p>
             </div>
         </div>
 
-        <!-- 3. Tabel Rekap Bulanan (Tanggal 1 s/d Jumlah Hari Bulan Tersebut) -->
-        @php
-            $jumlahHari = cal_days_in_month(CAL_GREGORIAN, (int)$bulan, (int)$tahun);
-        @endphp
-
+        <!-- 3. Tabel Rekap Bulanan -->
         <div class="overflow-x-auto">
             <table class="w-full text-[10px] text-center border-collapse">
                 <thead class="bg-slate-100 font-bold uppercase text-slate-800">
@@ -73,7 +76,7 @@
                         <th rowspan="2" class="w-6 py-2">No</th>
                         <th rowspan="2" class="w-20">NISN</th>
                         <th rowspan="2" class="text-left px-2 w-48">Nama Siswa</th>
-                        <th colspan="{{ $jumlahHari }}" class="py-1">Tanggal Bulan {{ DateTime::createFromFormat('!m', (int)$bulan)->format('F') }}</th>
+                        <th colspan="{{ $jumlahHari }}" class="py-1">Tanggal Bulan {{ $namaBulan }}</th>
                         <th colspan="4" class="w-20">Total</th>
                     </tr>
                     <tr>
@@ -104,7 +107,6 @@
                                     $tglKey = sprintf('%04d-%02d-%02d', $tahun, $bulan, $d);
                                     $statusKode = $detailHarian[$tglKey] ?? '.';
                                     
-                                    // Pewarnaan kode status singkat (H, I, S, A)
                                     $colorClass = '';
                                     if ($statusKode === 'H') $colorClass = 'text-emerald-700 font-bold';
                                     elseif ($statusKode === 'I') $colorClass = 'bg-blue-100 text-blue-800 font-bold';
@@ -140,21 +142,26 @@
             <span><strong class="text-rose-700">A</strong> = Alpa / Tanpa Keterangan</span>
         </div>
 
-        <!-- 4. Kolom Tanda Tangan Guru & Kepala Sekolah -->
+        <!-- 4. Kolom Tanda Tangan -->
         <div class="mt-8 grid grid-cols-2 text-center text-xs text-slate-800 font-medium break-inside-avoid">
+            <!-- Tanda Tangan Kepala Sekolah -->
+        <div>
+            <p>Mengetahui,</p>
+            <p class="font-bold">Kepala Sekolah {{ $profilSekolah->nama_sekolah ?? $profilSekolah->nama ?? '' }}</p>
+            <div class="h-16"></div> <!-- Space Tanda Tangan -->
+            <p class="font-bold underline uppercase">
+                {{ $kepalaSekolah->nama ?? '.....................................' }}
+            </p>
+            <p class="text-[10px] text-slate-600">
+                NIP. {{ $kepalaSekolah->nip ?? '.....................................' }}
+            </p>
+        </div>
             <div>
-                <p>Mengetahui,</p>
-                <p class="font-bold">Kepala Sekolah {{ $profilSekolah->nama_sekolah ?? '' }}</p>
-                <div class="h-16"></div> <!-- Space Tanda Tangan -->
-                <p class="font-bold underline uppercase">{{ $kepalaSekolah->nama ?? '.....................................' }}</p>
-                <p class="text-[10px] text-slate-600">NIP. {{ $kepalaSekolah->nip ?? '.....................................' }}</p>
-            </div>
-            <div>
-                <p>Kedunggalar, {{ date('t') }} {{ DateTime::createFromFormat('!m', (int)$bulan)->format('F') }} {{ $tahun }}</p>
+                <p>Kedunggalar, {{ $jumlahHari }} {{ $namaBulan }} {{ $tahun }}</p>
                 <p class="font-bold">Guru Kelas / Mata Pelajaran</p>
-                <div class="h-16"></div> <!-- Space Tanda Tangan -->
-                <p class="font-bold underline uppercase">{{ Auth::user()->name ?? $guru->nama ?? '.....................................' }}</p>
-                <p class="text-[10px] text-slate-600">NIP. {{ Auth::user()->nip ?? $guru->nip ?? '.....................................' }}</p>
+                <div class="h-16"></div>
+                <p class="font-bold underline uppercase">{{ $guru->nama_guru ?? $guru->nama ?? Auth::user()->name }}</p>
+                <p class="text-[10px] text-slate-600">NIP. {{ $guru->nip ?? Auth::user()->nip ?? '.....................................' }}</p>
             </div>
         </div>
 

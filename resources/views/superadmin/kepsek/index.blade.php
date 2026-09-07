@@ -26,6 +26,7 @@
                         <th class="px-6 py-3">No</th>
                         <th class="px-6 py-3">Nama Kepala Sekolah</th>
                         <th class="px-6 py-3">Sekolah</th>
+                        <th class="px-6 py-3">NIP</th>
                         <th class="px-6 py-3">Username / Email</th>
                         <th class="px-6 py-3 text-center">Status Password</th>
                         <th class="px-6 py-3 text-center">Aksi</th>
@@ -40,6 +41,9 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                                 {{ $item->sekolah->nama_sekolah ?? '-' }}
                             </span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-slate-600">
+                            {{ $item->nip ?? '-' }}
                         </td>
                         <td class="px-6 py-4 font-mono text-slate-700">{{ $item->email }}</td>
                         <td class="px-6 py-4 text-center">

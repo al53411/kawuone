@@ -165,6 +165,7 @@
 </div>
 
 <!-- JavaScript autofill data dari Sekolah -->
+<!-- JavaScript autofill data dari Sekolah -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const sekolahSelect = document.getElementById('sekolah_id');

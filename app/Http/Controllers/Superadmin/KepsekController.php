@@ -18,12 +18,13 @@ class KepsekController extends Controller
         $query = User::whereIn('role', ['kepsek', 'Kepsek', 'KEPSEK', 'kepala_sekolah'])
                      ->with('sekolah');
 
-        // Fitur pencarian berdasarkan Nama, Email/Username, atau Sekolah
+        // Fitur pencarian berdasarkan Nama, Email/Username, NIP, atau Sekolah
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%") // <-- Pencarian NIP ditambahkan
                   ->orWhereHas('sekolah', function($s) use ($search) {
                       $s->where('nama_sekolah', 'like', "%{$search}%");
                   });
@@ -42,7 +43,8 @@ class KepsekController extends Controller
      */
     public function create()
     {
-        $sekolahs = Sekolah::all();
+        // Mengambil data sekolah dengan urutan nama agar rapi di dropdown
+        $sekolahs = Sekolah::orderBy('nama_sekolah', 'asc')->get();
         return view('superadmin.kepsek.create', compact('sekolahs'));
     }
 
@@ -51,16 +53,27 @@ class KepsekController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input (NIP Ditambahkan)
         $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => 'required|string|email|max:255|unique:users,email',
+            'nip'        => 'nullable|string|max:50', // <-- Validasi NIP
             'password'   => 'required|string|min:8',
             'sekolah_id' => 'nullable|exists:sekolahs,id',
+        ], [
+            'name.required'     => 'Nama lengkap wajib diisi.',
+            'email.required'    => 'Alamat email wajib diisi.',
+            'email.unique'      => 'Email ini sudah terdaftar.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min'      => 'Password minimal 8 karakter.',
+            'sekolah_id.exists' => 'Sekolah yang dipilih tidak valid.',
         ]);
 
+        // 2. Simpan Data ke DB (NIP Ditambahkan)
         User::create([
             'name'       => $request->name,
             'email'      => $request->email,
+            'nip'        => $request->nip ?? null, // <-- Kirim NIP ke DB
             'password'   => Hash::make($request->password),
             'role'       => 'kepsek',
             'sekolah_id' => $request->sekolah_id,
