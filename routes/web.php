@@ -18,13 +18,15 @@ use App\Http\Controllers\Admin\KepalaSekolahController as AdminKepalaSekolahCont
 use App\Http\Controllers\Admin\SekolahController as AdminSekolahController;
 use App\Http\Controllers\Admin\SiswaController as AdminSiswaController;
 use App\Http\Controllers\Admin\JurnalController as AdminJurnalController;
+use App\Http\Controllers\Admin\TahunAjaranController;
 
 // Import Controller Guru
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\GuruSiswaController;
 use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
-use App\Http\Controllers\Guru\SekolahController as GuruSekolahController; // <-- DITAMBAHKAN
+use App\Http\Controllers\Guru\SekolahController as GuruSekolahController;
+use App\Http\Controllers\Guru\ProfilController as GuruProfilController; // <-- DIPERBAIKI / DITAMBAHKAN
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -90,6 +92,11 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
 
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+    // Tahun Ajaran
+    Route::get('/tahun-ajaran', [TahunAjaranController::class, 'index'])->name('tahun-ajaran.index');
+    Route::post('/tahun-ajaran', [TahunAjaranController::class, 'store'])->name('tahun-ajaran.store');
+    Route::put('/tahun-ajaran/{id}/set-aktif', [TahunAjaranController::class, 'setAktif'])->name('tahun-ajaran.set-aktif');
+
     // Validasi Jurnal oleh Kepala Sekolah / Admin
     Route::get('/validasi-jurnal', [AdminKepalaSekolahController::class, 'indexValidasiJurnal'])->name('kepala-sekolah.jurnal.index');
     Route::put('/validasi-jurnal/{id}', [AdminKepalaSekolahController::class, 'updateStatusJurnal'])->name('kepala-sekolah.jurnal.update');
@@ -97,7 +104,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     // Reset Password Guru
     Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
 
-    // Import & Template Guru (Menggunakan AdminGuruController sesuai alias)
+    // Import & Template Guru
     Route::post('/guru/import', [AdminGuruController::class, 'import'])->name('guru.import');
     Route::get('/guru/template', [AdminGuruController::class, 'downloadTemplate'])->name('guru.template');
 
@@ -107,7 +114,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     // Cetak Absensi Mapel
     Route::get('/absensi/cetak-mapel', [CetakAbsensiMapelController::class, 'index'])->name('absensi.cetak-mapel');
 
-    // Route Resource Fitur Admin Sekolah (Ditaruh setelah route spesifik)
+    // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);
     Route::resource('guru', AdminGuruController::class);
     Route::resource('kelas', AdminKelasController::class);
@@ -125,30 +132,34 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
 
-    // MODUL ABSENSI SISWA OLEH GURU
+    // Modul Profil Guru
+    Route::get('/profil', [GuruProfilController::class, 'index'])->name('profil.index');
+    Route::put('/profil', [GuruProfilController::class, 'update'])->name('profil.update');
+
+    // Modul Absensi Siswa oleh Guru
     Route::get('/absensi', [GuruAbsensiController::class, 'index'])->name('absensi.index');
     Route::post('/absensi', [GuruAbsensiController::class, 'store'])->name('absensi.store');
     Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
     Route::get('/absensi/cetak', [GuruAbsensiController::class, 'cetakRekap'])->name('absensi.cetak');
 
-    // Rute Profil Sekolah khusus Guru (Read-Only)
-    Route::get('/sekolah', [GuruSekolahController::class, 'index'])->name('sekolah.index'); // <-- PERBAIKAN DISINI
+    // Profil Sekolah khusus Guru (Read-Only)
+    Route::get('/sekolah', [GuruSekolahController::class, 'index'])->name('sekolah.index');
 
-    // Rute Siswa khusus modul Guru
+    // Siswa khusus modul Guru
     Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);
     
-    // Rute Kelas Guru
+    // Kelas Guru
     Route::get('/kelas', [GuruSiswaController::class, 'kelasIndex'])->name('kelas.index');
     Route::get('/kelas/{id}', [GuruSiswaController::class, 'kelasShow'])->name('kelas.show');
 
-    // Route Cetak Rekap Jurnal
+    // Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
     
 });
 
 // ==========================================
-// PROFILE MANAGEMENT
+// PROFILE MANAGEMENT (DEFAULT BREEZE/JETSTREAM)
 // ==========================================
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

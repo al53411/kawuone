@@ -96,7 +96,7 @@
                 <!-- Dropdown Master Data -->
                 @php
                 $isAkademikActive = request()->routeIs('admin.sekolah.*', 'admin.siswa.*', 'admin.guru.*',
-                'admin.kelas.*');
+                'admin.kelas.*', 'admin.tahun-ajaran.*');
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
@@ -115,6 +115,10 @@
                         <a href="{{ route('admin.sekolah.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Profil Sekolah
+                        </a>
+                        <a href="{{ route('admin.tahun-ajaran.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.tahun-ajaran.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-calendar-days text-xs mr-2"></i> Tahun Ajaran
                         </a>
                         <a href="{{ route('admin.guru.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('admin.guru.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
@@ -227,8 +231,18 @@
                     </div>
                 </div>
 
-                <!-- User Info Ringkas -->
+                <!-- User Info & Indikator Tahun Ajaran -->
                 <div class="flex items-center space-x-3">
+                    @php
+                        $taAktif = \App\Models\TahunAjaran::getAktif(auth()->user()->sekolah_id);
+                    @endphp
+
+                    @if($taAktif)
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
+                        </span>
+                    @endif
+
                     <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
                         {{ Auth::user()->name ?? 'Administrator' }}
                     </span>

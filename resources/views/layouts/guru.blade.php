@@ -10,7 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- FIX 1: Import SweetAlert2 -->
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
@@ -101,16 +101,18 @@
                             <i class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Data Akademik</span>
                         </div>
-                        <!-- FIX 2: Perbaikan kondisi routeIs -->
                         <i id="arrow-akademik"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'profile.*') ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <!-- FIX 2: Perbaikan kondisi hidden/show -->
-                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'profile.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('guru.sekolah.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Data Sekolah
+                        </a>
+                        <a href="{{ route('guru.profil.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.profil.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-user text-xs mr-2"></i> Profil Guru
                         </a>
                         <a href="{{ route('guru.siswa.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.siswa.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
@@ -188,13 +190,24 @@
                         <span class="text-slate-600 font-medium">@yield('page_title', 'Dashboard')</span>
                     </div>
                 </div>
-
                 <div class="flex items-center space-x-3">
-                    <a href="{{ route('profile.edit') }}" 
-                        class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-gear text-slate-500"></i>
-                        <span>Pengaturan Akun</span>
-                    </a>
+                    @php
+                        $sekolahId = auth()->user()->sekolah_id ?? null;
+                        $taAktif = $sekolahId ? \App\Models\TahunAjaran::getAktif($sekolahId) : null;
+                    @endphp
+
+                    @if($taAktif)
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
+                        </span>
+                    @endif
+
+                    <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
+                        {{ Auth::user()->name ?? 'Guru' }}
+                    </span>
+                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        {{ strtoupper(substr(Auth::user()->name ?? 'G', 0, 1)) }}
+                    </div>
                 </div>
             </header>
 
