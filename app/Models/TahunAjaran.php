@@ -24,8 +24,8 @@ class TahunAjaran extends Model
 
     public static function getAktif($sekolahId = null)
     {
-        // BENAR: Gunakan boolean `true` untuk mengambil Tahun Ajaran AKTIF
-        $query = static::where('is_aktif', true);
+        // Menggunakan whereRaw agar PostgreSQL & MySQL dipaksa membaca boolean true
+        $query = static::whereRaw("is_aktif = true");
 
         if ($sekolahId) {
             $query->where('sekolah_id', $sekolahId);
