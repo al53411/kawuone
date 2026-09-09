@@ -24,7 +24,7 @@ class TahunAjaran extends Model
 
     public static function getAktif($sekolahId = null)
     {
-        // FIX UNTUK POSTGRESQL VERCEL: Gunakan boolean true, bukan integer 1
+        // BENAR: Gunakan boolean `true` untuk mengambil Tahun Ajaran AKTIF
         $query = static::where('is_aktif', true);
 
         if ($sekolahId) {
