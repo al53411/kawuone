@@ -28,7 +28,7 @@ class TahunAjaranController extends Controller
             'sekolah_id' => Auth::user()->sekolah_id,
             'tahun' => $request->tahun,
             'semester' => $request->semester,
-            'is_aktif' => false, // Boolean eksplisit
+            'is_aktif' => (bool) false, // Paksa menjadi boolean murni
         ]);
 
         return redirect()->back()->with('success', 'Tahun Ajaran berhasil ditambahkan!');
@@ -38,12 +38,12 @@ class TahunAjaranController extends Controller
     {
         $sekolahId = Auth::user()->sekolah_id;
 
-        // Reset semua tahun ajaran di sekolah tersebut menjadi false
-        TahunAjaran::where('sekolah_id', $sekolahId)->update(['is_aktif' => false]);
+        // Reset seluruh tahun ajaran sekolah ini menjadi false
+        TahunAjaran::where('sekolah_id', $sekolahId)->update(['is_aktif' => (bool) false]);
 
-        // Set tahun ajaran yang dipilih menjadi true
+        // Set tahun ajaran pilihan menjadi true
         $ta = TahunAjaran::where('sekolah_id', $sekolahId)->findOrFail($id);
-        $ta->update(['is_aktif' => true]);
+        $ta->update(['is_aktif' => (bool) true]);
 
         return redirect()->back()->with('success', 'Tahun Ajaran aktif berhasil diperbarui!');
     }
