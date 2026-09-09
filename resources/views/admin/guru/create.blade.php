@@ -8,8 +8,7 @@
     <!-- Header Form -->
     <div class="mb-6 sm:mb-8 border-b pb-4">
         <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Tambah Data Guru Baru</h1>
-        <p class="text-xs sm:text-sm text-gray-500 mt-1">Lengkapi data guru berdasarkan data resmi Dukcapil, BKN, dan
-            Dapodik.</p>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1">Lengkapi data guru berdasarkan data resmi Dukcapil, BKN, dan Dapodik.</p>
     </div>
 
     <form action="{{ route('admin.guru.store') }}" method="POST" class="space-y-6 sm:space-y-8">
@@ -28,8 +27,9 @@
                     <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                         NIK (16 Digit) <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="nik" value="{{ old('nik') }}" maxlength="16"
+                    <input type="text" name="nik" value="{{ old('nik') }}" maxlength="16" inputmode="numeric"
                         placeholder="320XXXXXXXXXXXXXXXX"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nik') border-red-500 @enderror"
                         required>
                     @error('nik') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
@@ -100,7 +100,7 @@
             </div>
         </div>
 
-        <!-- SECTION 2: TUGAS MENGAJAR & JABATAN (PENYESUAIAN KHUSUS) -->
+        <!-- SECTION 2: TUGAS MENGAJAR & JABATAN -->
         <div>
             <div class="flex items-center space-x-2 mb-3 sm:mb-4">
                 <span class="w-2 sm:w-2.5 h-5 sm:h-6 bg-amber-500 rounded-full inline-block"></span>
@@ -118,31 +118,18 @@
                         required>
                         <option value="">-- Pilih Penugasan Guru --</option>
                         <optgroup label="Guru Kelas SD">
-                            <option value="Guru Kelas 1"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 1' ? 'selected' : '' }}>Guru Kelas 1</option>
-                            <option value="Guru Kelas 2"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 2' ? 'selected' : '' }}>Guru Kelas 2</option>
-                            <option value="Guru Kelas 3"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 3' ? 'selected' : '' }}>Guru Kelas 3</option>
-                            <option value="Guru Kelas 4"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 4' ? 'selected' : '' }}>Guru Kelas 4</option>
-                            <option value="Guru Kelas 5"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 5' ? 'selected' : '' }}>Guru Kelas 5</option>
-                            <option value="Guru Kelas 6"
-                                {{ old('mata_pelajaran') == 'Guru Kelas 6' ? 'selected' : '' }}>Guru Kelas 6</option>
+                            <option value="Guru Kelas 1" {{ old('mata_pelajaran') == 'Guru Kelas 1' ? 'selected' : '' }}>Guru Kelas 1</option>
+                            <option value="Guru Kelas 2" {{ old('mata_pelajaran') == 'Guru Kelas 2' ? 'selected' : '' }}>Guru Kelas 2</option>
+                            <option value="Guru Kelas 3" {{ old('mata_pelajaran') == 'Guru Kelas 3' ? 'selected' : '' }}>Guru Kelas 3</option>
+                            <option value="Guru Kelas 4" {{ old('mata_pelajaran') == 'Guru Kelas 4' ? 'selected' : '' }}>Guru Kelas 4</option>
+                            <option value="Guru Kelas 5" {{ old('mata_pelajaran') == 'Guru Kelas 5' ? 'selected' : '' }}>Guru Kelas 5</option>
+                            <option value="Guru Kelas 6" {{ old('mata_pelajaran') == 'Guru Kelas 6' ? 'selected' : '' }}>Guru Kelas 6</option>
                         </optgroup>
                         <optgroup label="Guru Mata Pelajaran">
-                            <option value="Pendidikan Agama Islam"
-                                {{ old('mata_pelajaran') == 'Pendidikan Agama Islam' ? 'selected' : '' }}>Guru
-                                Pendidikan Agama Islam (PAI)</option>
-                            <option value="Pendidikan Agama Kristen"
-                                {{ old('mata_pelajaran') == 'Pendidikan Agama Kristen' ? 'selected' : '' }}>Guru
-                                Pendidikan Agama Kristen</option>
-                            <option value="PJOK" {{ old('mata_pelajaran') == 'PJOK' ? 'selected' : '' }}>Guru PJOK /
-                                Olahraga</option>
-                            <option value="Bahasa Inggris"
-                                {{ old('mata_pelajaran') == 'Bahasa Inggris' ? 'selected' : '' }}>Guru Bahasa Inggris
-                            </option>
+                            <option value="Pendidikan Agama Islam" {{ old('mata_pelajaran') == 'Pendidikan Agama Islam' ? 'selected' : '' }}>Guru Pendidikan Agama Islam (PAI)</option>
+                            <option value="Pendidikan Agama Kristen" {{ old('mata_pelajaran') == 'Pendidikan Agama Kristen' ? 'selected' : '' }}>Guru Pendidikan Agama Kristen</option>
+                            <option value="PJOK" {{ old('mata_pelajaran') == 'PJOK' ? 'selected' : '' }}>Guru PJOK / Olahraga</option>
+                            <option value="Bahasa Inggris" {{ old('mata_pelajaran') == 'Bahasa Inggris' ? 'selected' : '' }}>Guru Bahasa Inggris</option>
                         </optgroup>
                     </select>
                     @error('mata_pelajaran') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
@@ -171,10 +158,10 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-4 sm:p-6 rounded-xl border">
                 <!-- NIP -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NIP (18
-                        Digit)</label>
-                    <input type="text" name="nip" value="{{ old('nip') }}" maxlength="18"
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NIP (18 Digit)</label>
+                    <input type="text" name="nip" value="{{ old('nip') }}" maxlength="18" inputmode="numeric"
                         placeholder="1992XXXXXXXXXXXXXXXX"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nip') border-red-500 @enderror">
                     @error('nip') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -189,18 +176,15 @@
                         required>
                         <option value="PNS" {{ old('status_kepegawaian') == 'PNS' ? 'selected' : '' }}>PNS</option>
                         <option value="PPPK" {{ old('status_kepegawaian') == 'PPPK' ? 'selected' : '' }}>PPPK</option>
-                        <option value="GTT" {{ old('status_kepegawaian') == 'GTT' ? 'selected' : '' }}>GTT (Guru Tidak
-                            Tetap)</option>
-                        <option value="GTY" {{ old('status_kepegawaian') == 'GTY' ? 'selected' : '' }}>GTY (Guru Tetap
-                            Yayasan)</option>
+                        <option value="GTT" {{ old('status_kepegawaian') == 'GTT' ? 'selected' : '' }}>GTT (Guru Tidak Tetap)</option>
+                        <option value="GTY" {{ old('status_kepegawaian') == 'GTY' ? 'selected' : '' }}>GTY (Guru Tetap Yayasan)</option>
                     </select>
                     @error('status_kepegawaian') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Golongan / Ruang -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Golongan /
-                        Ruang</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Golongan / Ruang</label>
                     <input type="text" name="golongan" value="{{ old('golongan') }}" placeholder="Contoh: III/a atau IX"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('golongan') border-red-500 @enderror">
                     @error('golongan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
@@ -208,8 +192,7 @@
 
                 <!-- TMT SK -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">TMT SK
-                        Berjalan</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">TMT SK Berjalan</label>
                     <input type="date" name="tmt_sk" value="{{ old('tmt_sk') }}"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('tmt_sk') border-red-500 @enderror">
                     @error('tmt_sk') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
@@ -217,18 +200,15 @@
 
                 <!-- Masa Kerja Golongan (MKG) -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Masa Kerja
-                        Golongan (MKG)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Masa Kerja Golongan (MKG)</label>
                     <div class="grid grid-cols-2 gap-2 sm:gap-3">
                         <div>
-                            <input type="number" name="mkg_tahun" value="{{ old('mkg_tahun', 0) }}" min="0"
-                                placeholder="Tahun"
+                            <input type="number" name="mkg_tahun" value="{{ old('mkg_tahun', 0) }}" min="0" placeholder="Tahun"
                                 class="w-full px-3 py-2 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm">
                             <span class="text-[10px] sm:text-xs text-gray-500 mt-0.5 block">Tahun</span>
                         </div>
                         <div>
-                            <input type="number" name="mkg_bulan" value="{{ old('mkg_bulan', 0) }}" min="0" max="11"
-                                placeholder="Bulan"
+                            <input type="number" name="mkg_bulan" value="{{ old('mkg_bulan', 0) }}" min="0" max="11" placeholder="Bulan"
                                 class="w-full px-3 py-2 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm">
                             <span class="text-[10px] sm:text-xs text-gray-500 mt-0.5 block">Bulan</span>
                         </div>
@@ -253,8 +233,7 @@
                     <select name="pendidikan_terakhir"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('pendidikan_terakhir') border-red-500 @enderror"
                         required>
-                        <option value="S-1" {{ old('pendidikan_terakhir') == 'S-1' ? 'selected' : '' }}>S-1 / D-4
-                        </option>
+                        <option value="S-1" {{ old('pendidikan_terakhir') == 'S-1' ? 'selected' : '' }}>S-1 / D-4</option>
                         <option value="S-2" {{ old('pendidikan_terakhir') == 'S-2' ? 'selected' : '' }}>S-2</option>
                         <option value="S-3" {{ old('pendidikan_terakhir') == 'S-3' ? 'selected' : '' }}>S-3</option>
                         <option value="D-3" {{ old('pendidikan_terakhir') == 'D-3' ? 'selected' : '' }}>D-3</option>
@@ -264,18 +243,17 @@
 
                 <!-- NUPTK -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NUPTK (16
-                        Digit)</label>
-                    <input type="text" name="nuptk" value="{{ old('nuptk') }}" maxlength="16"
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NUPTK (16 Digit)</label>
+                    <input type="text" name="nuptk" value="{{ old('nuptk') }}" maxlength="16" inputmode="numeric"
                         placeholder="16 Digit Nomor NUPTK"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nuptk') border-red-500 @enderror">
                     @error('nuptk') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Nomor Serdik -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Nomor Sertifikat
-                        Pendidik (Serdik)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Nomor Sertifikat Pendidik (Serdik)</label>
                     <input type="text" name="no_serdik" value="{{ old('no_serdik') }}" placeholder="Nomor Serdik"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('no_serdik') border-red-500 @enderror">
                     @error('no_serdik') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
@@ -283,8 +261,7 @@
 
                 <!-- NRG -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NRG (Nomor
-                        Register Guru)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">NRG (Nomor Register Guru)</label>
                     <input type="text" name="nrg" value="{{ old('nrg') }}" placeholder="Nomor Register Guru"
                         class="w-full px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-xs sm:text-sm @error('nrg') border-red-500 @enderror">
                     @error('nrg') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror

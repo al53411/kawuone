@@ -47,11 +47,12 @@ class GuruController extends Controller
             $jabatanLower = strtolower($guru->jabatan ?? '');
             $jenisGuruLower = strtolower($guru->jenis_guru ?? '');
 
-            $isGuruMapel = str_contains($jabatanLower, 'mapel') ||
-                           str_contains($jabatanLower, 'mata pelajaran') ||
-                           str_contains($jenisGuruLower, 'mapel') ||
-                           !empty($guru->mata_pelajaran);
+            $isExplicitMapel = str_contains($jabatanLower, 'mapel') ||
+                               str_contains($jabatanLower, 'mata pelajaran') ||
+                               str_contains($jenisGuruLower, 'mapel') ||
+                               !empty($guru->mata_pelajaran);
 
+            // Filter kelas tempat guru menjadi Wali Kelas
             $assignedClasses = $sekolahKelas->filter(function ($kelas) use ($guru) {
                 $waliVal = $kelas->wali_kelas ?? null;
                 $guruIdVal = $kelas->guru_id ?? null;
@@ -63,13 +64,13 @@ class GuruController extends Controller
             });
 
             $guru->assigned_kelas = $assignedClasses;
-            $guru->is_guru_mapel = $isGuruMapel;
 
-            if ($isGuruMapel) {
-                $guru->tipe_penugasan = 'guru_mapel';
-                $guru->has_kelas = true;
-            } elseif ($assignedClasses->isNotEmpty()) {
+            // Penentuan Tipe Penugasan
+            if ($assignedClasses->isNotEmpty()) {
                 $guru->tipe_penugasan = 'wali_kelas';
+                $guru->has_kelas = true;
+            } elseif ($isExplicitMapel) {
+                $guru->tipe_penugasan = 'guru_mapel';
                 $guru->has_kelas = true;
             } else {
                 $guru->tipe_penugasan = 'none';

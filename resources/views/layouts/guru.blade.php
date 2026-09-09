@@ -102,10 +102,10 @@
                             <span class="font-medium text-sm">Data Akademik</span>
                         </div>
                         <i id="arrow-akademik"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'profile.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'guru.profil.*') ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'profile.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'guru.profil.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('guru.sekolah.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Data Sekolah
@@ -191,24 +191,32 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    @php
-                        $sekolahId = auth()->user()->sekolah_id ?? null;
-                        $taAktif = $sekolahId ? \App\Models\TahunAjaran::getAktif($sekolahId) : null;
-                    @endphp
+    @php
+        $sekolahId = auth()->user()->sekolah_id ?? null;
+        $taAktif = $sekolahId ? \App\Models\TahunAjaran::getAktif($sekolahId) : null;
+    @endphp
 
-                    @if($taAktif)
-                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
-                        </span>
-                    @endif
+    @if($taAktif)
+        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
+        </span>
+    @elseif(!$sekolahId)
+        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200" title="User belum terhubung ke sekolah_id">
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Sekolah Belum Set
+        </span>
+    @else
+        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200" title="Belum ada Tahun Ajaran yang di-set Aktif">
+            <i class="fa-solid fa-calendar-xmark mr-1.5"></i> TP Belum Aktif
+        </span>
+    @endif
 
-                    <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
-                        {{ Auth::user()->name ?? 'Guru' }}
-                    </span>
-                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                        {{ strtoupper(substr(Auth::user()->name ?? 'G', 0, 1)) }}
-                    </div>
-                </div>
+    <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
+        {{ Auth::user()->name ?? 'Guru' }}
+    </span>
+    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+        {{ strtoupper(substr(Auth::user()->name ?? 'G', 0, 1)) }}
+    </div>
+</div>
             </header>
 
             <!-- Main Content Section -->
