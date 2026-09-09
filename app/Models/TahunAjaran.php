@@ -18,12 +18,14 @@ class TahunAjaran extends Model
         'is_aktif',
     ];
 
-    /**
-     * Helper untuk mengambil Tahun Ajaran aktif berdasarkan sekolah
-     */
+    protected $casts = [
+        'is_aktif' => 'boolean',
+    ];
+
     public static function getAktif($sekolahId = null)
     {
-        $query = self::where('is_aktif', true);
+        // FIX UNTUK POSTGRESQL VERCEL: Gunakan boolean true, bukan integer 1
+        $query = static::where('is_aktif', true);
 
         if ($sekolahId) {
             $query->where('sekolah_id', $sekolahId);
