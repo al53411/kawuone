@@ -18,10 +18,19 @@ class Mapel extends Model
     ];
 
     /**
-     * Relasi ke Sekolah (jika ada)
+     * Relasi ke Sekolah
      */
     public function sekolah()
     {
-        return $this->belongsTo(Sekolah::class);
+        return $this->belongsTo(Sekolah::class, 'sekolah_id');
+    }
+
+    /**
+     * Relasi Many-to-Many ke Kelas melalui tabel pivot kelas_mapel
+     */
+    public function kelases()
+    {
+        return $this->belongsToMany(Kelas::class, 'kelas_mapel', 'mapel_id', 'kelas_id')
+                    ->withTimestamps();
     }
 }

@@ -4,7 +4,8 @@
 @section('page_title', 'Persetujuan Jurnal Mengajar')
 
 @section('content')
-<div class="mb-6 md:mb-8">
+<div class="w-full bg-white text-slate-800 p-4 sm:p-6">
+    <div class="mb-6 md:mb-8">
     <h1 class="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Validasi Jurnal Mengajar Guru</h1>
     <p class="text-xs md:text-sm text-gray-500">Periksa dan validasi laporan jurnal mengajar harian guru pendidik.</p>
 </div>
@@ -245,6 +246,8 @@
         </form>
     </div>
 </div>
+</div>
+
 
 <script>
 function toggleRejectModal(jurnalId) {

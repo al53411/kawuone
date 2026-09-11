@@ -1,8 +1,8 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container mx-auto p-6">
-    <div class="flex justify-between items-center mb-6">
+<div class="w-full bg-white text-slate-800 p-4 sm:p-6">
+    <div class="w-full space-y-6">
         <h1 class="text-2xl font-bold text-gray-800">Manajemen Tahun Ajaran</h1>
         <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
             + Tambah Tahun Ajaran

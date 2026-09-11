@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 
-// Import Controller Superadmin / Admin Pusat
+// Import Controller Superadmin / Admin Pusat   
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
 use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController;
 use App\Http\Controllers\Superadmin\UserController;
@@ -19,6 +19,11 @@ use App\Http\Controllers\Admin\SekolahController as AdminSekolahController;
 use App\Http\Controllers\Admin\SiswaController as AdminSiswaController;
 use App\Http\Controllers\Admin\JurnalController as AdminJurnalController;
 use App\Http\Controllers\Admin\TahunAjaranController;
+use App\Http\Controllers\Admin\CapaianPembelajaranController;
+use App\Http\Controllers\Admin\MapelController;
+use App\Http\Controllers\Admin\TujuanPembelajaranController;
+use App\Http\Controllers\Admin\AlurTujuanPembelajaranController;
+
 
 // Import Controller Guru
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
@@ -26,7 +31,7 @@ use App\Http\Controllers\Guru\GuruSiswaController;
 use App\Http\Controllers\Guru\JurnalController as GuruJurnalController;
 use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 use App\Http\Controllers\Guru\SekolahController as GuruSekolahController;
-use App\Http\Controllers\Guru\ProfilController as GuruProfilController; // <-- DIPERBAIKI / DITAMBAHKAN
+use App\Http\Controllers\Guru\ProfilController as GuruProfilController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -114,6 +119,9 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     // Cetak Absensi Mapel
     Route::get('/absensi/cetak-mapel', [CetakAbsensiMapelController::class, 'index'])->name('absensi.cetak-mapel');
 
+    // Route Master Capaian Pembelajaran (CP)
+    Route::resource('capaian-pembelajaran', CapaianPembelajaranController::class)->except(['create', 'edit', 'show']);
+
     // Route Resource Fitur Admin Sekolah
     Route::resource('absensi', AdminAbsensiController::class);
     Route::resource('guru', AdminGuruController::class);
@@ -122,6 +130,19 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     Route::resource('siswa', AdminSiswaController::class);
     Route::resource('jurnal', AdminJurnalController::class);
     Route::resource('kepala-sekolah', AdminKepalaSekolahController::class);
+
+    //Route Kelas
+    Route::resource('mapel', MapelController::class);
+
+    //Route Tujuan Pembelajaran
+    Route::resource('tujuan-pembelajaran', TujuanPembelajaranController::class)->except(['create', 'edit', 'show']);
+
+    //Route Alur Tujuan Pembelajaran
+    Route::resource('atp', AlurTujuanPembelajaranController::class)->except(['create', 'edit', 'show']);
+
+    // Route API AJAX untuk dropdown dinamis
+    Route::get('/api/atp/by-tp', [AlurTujuanPembelajaranController::class, 'getByTp'])->name('api.atp.get_by_tp');
+
 });
 
 

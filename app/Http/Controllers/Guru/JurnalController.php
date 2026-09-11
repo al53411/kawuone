@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\JurnalGuru;
 use App\Models\Kelas;
+use App\Models\Mapel; // 1. Impor Model Mapel
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,19 +30,9 @@ class JurnalController extends Controller
         // Ambil data kelas untuk pilihan dropdown
         $kelases = Kelas::all();
 
-        // Daftar Mata Pelajaran untuk dropdown Blade
-        $mapels = [
-            'Pendidikan Pancasila',
-            'Bahasa Indonesia',
-            'Matematika',
-            'IPAS',
-            'PJOK',
-            'Seni Budaya',
-            'PAI & Budi Pekerti',
-            'Bahasa Jawa',
-            'Bahasa Inggris',
-            'Tematik / Guru Kelas',
-        ];
+        // 2. Ambil Mata Pelajaran langsung dari Database
+        // Catatan: Jika ada relasi sekolah/status aktif, sesuaikan dengan query aplikasi Anda
+        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
 
         return view('guru.jurnal.index', compact('jurnals', 'kelases', 'mapels'));
     }
@@ -51,11 +42,11 @@ class JurnalController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input Form
+        // 3. Validasi Input Form (Sesuaikan validasi mapel ke database)
         $request->validate([
             'tanggal'    => 'required|date',
             'kelas_id'   => 'required|exists:kelas,id',
-            'mapel'      => 'required|string|max:255',
+            'mapel'      => 'required|string|max:255', // Atau 'required|exists:mapels,nama_mapel' jika mengirim nama
             'jam_ke'     => 'required|string|max:255',
             'materi'     => 'required|string',
             'kegiatan'   => 'required|string',
@@ -69,11 +60,11 @@ class JurnalController extends Controller
             'kegiatan.required' => 'Kegiatan pembelajaran wajib diisi.',
         ]);
 
-        // 2. Konversi tanggal menjadi nama Hari dalam Bahasa Indonesia
+        // Konversi tanggal menjadi nama Hari dalam Bahasa Indonesia
         Carbon::setLocale('id');
         $hari = Carbon::parse($request->tanggal)->translatedFormat('l');
 
-        // 3. Simpan Data ke Tabel jurnal_gurus
+        // Simpan Data ke Tabel jurnal_gurus
         JurnalGuru::create([
             'guru_id'         => Auth::id(),
             'kelas_id'        => $request->kelas_id,
@@ -166,11 +157,11 @@ class JurnalController extends Controller
             $template->setValue('nama_ks', $clean($kepalaSekolah->name ?? '..................................'));
             $template->setValue('nip_ks', $clean($kepalaSekolah->nip ?? '..................................'));
 
-            // 8. GROUPING BERDASARKAN TANGGAL (Menggabungkan tanggal yang sama ke dalam 1 baris)
+            // 8. GROUPING BERDASARKAN TANGGAL
             $groupedJurnals = $jurnals->groupBy('tanggal');
             $totalTanggal = $groupedJurnals->count();
 
-            // Clone row berdasarkan jumlah TANGGAL UNIK (bukan total baris)
+            // Clone row berdasarkan jumlah TANGGAL UNIK
             $template->cloneRow('no', $totalTanggal);
 
             $i = 1;
@@ -183,7 +174,6 @@ class JurnalController extends Controller
                 $kegiatanList   = [];
                 $keteranganList = [];
 
-                // Jika pada 1 tanggal ada lebih dari 1 jurnal, format dengan simbol '●'
                 $pakeBullet = count($items) > 1;
 
                 foreach ($items as $item) {

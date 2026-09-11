@@ -87,13 +87,11 @@
                 <!-- Mata Pelajaran -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
-                    <select name="mapel" required
-                        class="w-full text-base sm:text-sm rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 py-2 px-3">
+                    <!-- BENAR: Hanya mengambil properti nama_mapel -->
+                    <select name="mapel" id="mapel" class="flat-input w-full p-2.5" required>
                         <option value="">-- Pilih Mata Pelajaran --</option>
-                        @foreach($mapels as $mapel)
-                        <option value="{{ $mapel }}" {{ old('mapel') == $mapel ? 'selected' : '' }}>
-                            {{ $mapel }}
-                        </option>
+                        @foreach ($mapels as $mapel)
+                            <option value="{{ $mapel->nama_mapel }}">{{ $mapel->nama_mapel }}</option>
                         @endforeach
                     </select>
                 </div>

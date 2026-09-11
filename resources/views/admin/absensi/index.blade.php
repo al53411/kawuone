@@ -4,7 +4,8 @@
 @section('page_title', 'Absensi')
 
 @section('content')
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+<div class="w-full bg-white text-slate-800 p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Presensi Kehadiran Siswa</h1>
         <p class="text-gray-500">Kelola seluruh data siswa aktif {{ $profilSekolah->nama_sekolah }}.</p>
@@ -102,4 +103,6 @@
     </div>
     @endif
 </form>
+</div>
+
 @endsection

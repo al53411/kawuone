@@ -9,6 +9,7 @@ use App\Models\Guru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class KelasController extends Controller
 {
@@ -72,7 +73,6 @@ class KelasController extends Controller
             }
         }
 
-        // Pastikan nama variabel di sini $kelas
         $kelas = $kelasQuery->latest()->get();
 
         // 2. Data Siswa
@@ -98,7 +98,6 @@ class KelasController extends Controller
         }
         $gurus = $guruQuery->orderBy($kolomNamaGuru, 'asc')->get();
 
-        // UBAH 'kelases' MENJADI 'kelas' DI SINI:
         return view('admin.kelas.index', compact('kelas', 'siswas', 'gurus'));
     }
 
@@ -138,9 +137,11 @@ class KelasController extends Controller
         // 1. Simpan Data Kelas
         $kelas = Kelas::create($data);
 
-        // 2. Simpan Guru Pengampu ke Tabel Pivot guru_kelas
+        // 2. Simpan Guru Pengampu (Jika relasi gurus adalah BelongsToMany/Pivot)
         if ($request->has('guru_ids') && method_exists($kelas, 'gurus')) {
-            $kelas->gurus()->sync($request->guru_ids);
+            if ($kelas->gurus() instanceof BelongsToMany) {
+                $kelas->gurus()->sync($request->guru_ids);
+            }
         }
 
         return redirect()->back()->with('success', 'Data kelas berhasil ditambahkan.');
@@ -203,12 +204,14 @@ class KelasController extends Controller
         // 1. Update Data Kelas
         $kelas->update($data);
 
-        // 2. Sync Guru Pengampu di Tabel Pivot guru_kelas
+        // 2. Sync Guru Pengampu jika tipe relasinya BelongsToMany
         if (method_exists($kelas, 'gurus')) {
-            if ($request->has('guru_ids')) {
-                $kelas->gurus()->sync($request->guru_ids);
-            } else {
-                $kelas->gurus()->detach();
+            if ($kelas->gurus() instanceof BelongsToMany) {
+                if ($request->has('guru_ids')) {
+                    $kelas->gurus()->sync($request->guru_ids);
+                } else {
+                    $kelas->gurus()->detach();
+                }
             }
         }
 
@@ -223,9 +226,11 @@ class KelasController extends Controller
             return redirect()->back()->with('error', 'Kelas tidak bisa dihapus karena masih memiliki siswa!');
         }
 
-        // Hapus relasi pivot terlebih dahulu
+        // Hapus relasi pivot jika bertipe BelongsToMany
         if (method_exists($kelas, 'gurus')) {
-            $kelas->gurus()->detach();
+            if ($kelas->gurus() instanceof BelongsToMany) {
+                $kelas->gurus()->detach();
+            }
         }
 
         $kelas->delete();
