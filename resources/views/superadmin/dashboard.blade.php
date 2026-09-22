@@ -107,7 +107,7 @@
         <div>
             <a href="{{ route('superadmin.kepsek.create') }}"
                 class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-sm hover:shadow transition-all duration-200">
-                <i class="fa-solid fa-plus text-sm"></i> Tambah Kepsek / Sekolah
+                <i class="fa-solid fa-plus text-sm"></i> Tambah Akun
             </a>
         </div>
     </div>
