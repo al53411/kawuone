@@ -1,6 +1,6 @@
 @extends('layouts.superadmin')
 @section('title', 'Dashboard Superadmin')
-@section('header', 'Ringkasan Sistem Sekolah Pusat')
+@section('header', 'Sistem Sekolah Pusat')
 
 @section('content')
 
