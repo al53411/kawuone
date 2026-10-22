@@ -66,7 +66,7 @@
             <!-- Header Sidebar -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-5 border-b border-slate-800 shrink-0">
                 <div class="flex items-center space-x-3 overflow-hidden">
-                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
+                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-10 h-10 object-contain shrink-0">
                     <span class="text-white font-bold text-sm tracking-wide truncate">
                         {{ Auth::user()->sekolah->nama_sekolah ?? $profilSekolah->nama_sekolah ?? 'Sistem Sekolah' }}
                     </span>
@@ -142,6 +142,7 @@
                     'admin.atp.*',
                     'admin.modul_ajar.*',
                     'admin.absensi.*', 
+                    'admin.nilai.*',
                     'admin.kepala-sekolah.jurnal.*'
                 );
                 @endphp
@@ -191,6 +192,12 @@
                         <a href="{{ route('admin.absensi.index') }}"
                             class="block py-2 px-3 text-xs rounded-md transition {{ request()->routeIs('admin.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/60' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-clipboard-user text-[10px] mr-2"></i> Rekap Absensi
+                        </a>
+
+                        <!-- Input / Pengolahan Nilai -->
+                        <a href="{{ Route::has('admin.nilai.index') ? route('admin.nilai.index') : '#' }}"
+                            class="block py-2 px-3 text-xs rounded-md transition {{ request()->routeIs('admin.nilai.*') ? 'text-blue-400 font-semibold bg-slate-800/60' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-pen-to-square text-[10px] mr-2"></i> Input Nilai Siswa
                         </a>
 
                         <!-- Jurnal Harian -->

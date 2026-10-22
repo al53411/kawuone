@@ -72,7 +72,7 @@
             <!-- Brand Header -->
             <div class="h-16 flex items-center justify-between bg-slate-900 px-6 border-b border-slate-800">
                 <div class="flex items-center space-x-3 overflow-hidden">
-                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
+                    <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-10 h-10 object-contain shrink-0">
                     <span class="text-white font-bold text-base truncate">
                         {{ $profilSekolah->nama_sekolah ?? 'SDN Kawu 1' }}
                     </span>
@@ -147,6 +147,45 @@
                         <a href="{{ route('guru.absensi.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Dropdown Penilaian Guru -->
+                @php
+                $isPenilaianActive = request()->routeIs('guru.nilai.*', 'guru.nilai-formatif.*', 'guru.nilai-sumatif.*', 'guru.rapor.*');
+                @endphp
+                <div class="space-y-1">
+                    <button onclick="toggleDropdown('dropdown-penilaian', 'arrow-penilaian')"
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-file-pen text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <span class="font-medium text-sm">Penilaian</span>
+                        </div>
+                        <i id="arrow-penilaian"
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isPenilaianActive ? 'rotate-180' : '' }}"></i>
+                    </button>
+
+                    <div id="dropdown-penilaian" class="{{ $isPenilaianActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                        <a href="{{ Route::has('guru.nilai.index') ? route('guru.nilai.index') : '#' }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai.index', 'guru.nilai.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-pen-to-square text-xs mr-2"></i> Input Nilai Siswa
+                        </a>
+                        <a href="{{ Route::has('guru.nilai-formatif.index') ? route('guru.nilai-formatif.index') : '#' }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai-formatif.index') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-list-check text-xs mr-2"></i> Nilai Formatif
+                        </a>
+                        <a href="{{ Route::has('guru.nilai-formatif.rekap') ? route('guru.nilai-formatif.rekap') : '#' }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai-formatif.rekap') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-table-list text-xs mr-2"></i> Rekap Nilai Formatif
+                        </a>
+                        <a href="{{ Route::has('guru.nilai-sumatif.index') ? route('guru.nilai-sumatif.index') : '#' }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai-sumatif.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-graduation-cap text-xs mr-2"></i> Nilai Sumatif
+                        </a>
+                        <a href="{{ Route::has('guru.rapor.index') ? route('guru.rapor.index') : '#' }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.rapor.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-print text-xs mr-2"></i> Rekap / Rapor
                         </a>
                     </div>
                 </div>

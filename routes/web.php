@@ -33,6 +33,7 @@ use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 use App\Http\Controllers\Guru\SekolahController as GuruSekolahController;
 use App\Http\Controllers\Guru\ProfilController as GuruProfilController;
 use App\Http\Controllers\Guru\ModulAjarController as GuruModulAjarController;
+use App\Http\Controllers\Guru\NilaiFormatifController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -140,7 +141,7 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
     Route::get('/guru/get-elemen-tp', [TujuanPembelajaranController::class, 'getElemenAndTp'])->name('guru.get_elemen_tp');
     Route::get('/get-elemen-cp', [TujuanPembelajaranController::class, 'getElemenByMapelFase'])->name('get_elemen_cp');
 
-    // Route Alur Tujuan Pembelajaran (ATP) - DIPERBAIKI / DITAMBAHKAN KEMBALI
+    // Route Alur Tujuan Pembelajaran (ATP)
     Route::resource('atp', AlurTujuanPembelajaranController::class)->except(['create', 'edit', 'show']);
 
     // Route API AJAX untuk dropdown dinamis
@@ -191,6 +192,13 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     // Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
+    Route::get('/get-tp-by-mapel-kelas', [GuruJurnalController::class, 'getTpByMapelKelas'])->name('get_tp_by_mapel_kelas');
+
+    // Route Nilai Formatif & Endpoint AJAX
+    Route::get('/get-tp-by-mapel/{mapel_id}', [NilaiFormatifController::class, 'getTpByMapel'])->name('get_tp_by_mapel');
+    Route::get('/nilai-formatif', [NilaiFormatifController::class, 'index'])->name('nilai-formatif.index');
+    Route::post('/nilai-formatif', [NilaiFormatifController::class, 'store'])->name('nilai-formatif.store');
+    Route::get('/nilai-formatif/rekap', [NilaiFormatifController::class, 'rekap'])->name('nilai-formatif.rekap');
 
 });
 

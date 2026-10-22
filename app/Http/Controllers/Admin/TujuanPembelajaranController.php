@@ -17,11 +17,14 @@ class TujuanPembelajaranController extends Controller
      */
     public function index()
     {
-        $sekolahId = Auth::user()->sekolah_id ?? null;
+        $user = Auth::user();
+        $sekolahId = $user->sekolah_id ?? $user->guru?->sekolah_id;
 
         $tps = TujuanPembelajaran::with(['mapel', 'kelas'])
             ->when($sekolahId, function ($q) use ($sekolahId) {
-                $q->where('sekolah_id', $sekolahId);
+                $q->where(function ($sub) use ($sekolahId) {
+                    $sub->where('sekolah_id', $sekolahId)->orWhereNull('sekolah_id');
+                });
             })
             ->latest()
             ->get();
@@ -51,17 +54,46 @@ class TujuanPembelajaranController extends Controller
             'deskripsi_tp.*.required' => 'Setiap poin deskripsi TP tidak boleh kosong.',
         ]);
 
-        $sekolahId = Auth::user()->sekolah_id ?? null;
+        $user = Auth::user();
+        $sekolahId = $user->sekolah_id ?? $user->guru?->sekolah_id;
+
+        // Pemetaan Otomatis: Jika kelas_id kosong tapi fase diisi, carikan ID Kelas yang sesuai dengan Fase
+        $kelasId = $request->kelas_id;
+        if (!$kelasId && $request->filled('fase')) {
+            $faseUpper = strtoupper(trim($request->fase));
+            $petaFaseKelas = [
+                'FASE A' => 'Kelas 1',
+                'A'      => 'Kelas 1',
+                'FASE B' => 'Kelas 3',
+                'B'      => 'Kelas 3',
+                'FASE C' => 'Kelas 5',
+                'C'      => 'Kelas 5',
+            ];
+
+            if (isset($petaFaseKelas[$faseUpper])) {
+                $kelasFound = Kelas::where('nama_kelas', 'LIKE', '%' . $petaFaseKelas[$faseUpper] . '%')->first();
+                if ($kelasFound) {
+                    $kelasId = $kelasFound->id;
+                }
+            }
+        }
 
         // Loop untuk menyimpan setiap poin sebagai record terpisah
-        foreach ($request->deskripsi_tp as $deskripsi) {
+        foreach ($request->deskripsi_tp as $index => $deskripsi) {
+            
+            // Format kode TP otomatis jika menginput lebih dari 1 poin
+            $kodeTp = $request->kode_tp;
+            if ($kodeTp && count($request->deskripsi_tp) > 1) {
+                $kodeTp = $request->kode_tp . '.' . ($index + 1);
+            }
+
             TujuanPembelajaran::create([
                 'sekolah_id'   => $sekolahId,
                 'mapel_id'     => $request->mapel_id,
-                'kelas_id'     => $request->kelas_id,
+                'kelas_id'     => $kelasId,
                 'fase'         => $request->fase,
                 'elemen'       => $request->elemen,
-                'kode_tp'      => $request->kode_tp,
+                'kode_tp'      => $kodeTp,
                 'deskripsi_tp' => $deskripsi,
             ]);
         }
@@ -86,28 +118,53 @@ class TujuanPembelajaranController extends Controller
             'deskripsi_tp.*' => 'required|string',
         ]);
 
-        // Ambil poin pertama untuk update record saat ini
+        $user = Auth::user();
+        $sekolahId = $user->sekolah_id ?? $user->guru?->sekolah_id ?? $tp->sekolah_id;
+
+        // Pemetaan Otomatis Kelas jika kelas_id tidak dipilih saat edit
+        $kelasId = $request->kelas_id;
+        if (!$kelasId && $request->filled('fase')) {
+            $faseUpper = strtoupper(trim($request->fase));
+            $petaFaseKelas = [
+                'FASE A' => 'Kelas 1',
+                'A'      => 'Kelas 1',
+                'FASE B' => 'Kelas 3',
+                'B'      => 'Kelas 3',
+                'FASE C' => 'Kelas 5',
+                'C'      => 'Kelas 5',
+            ];
+
+            if (isset($petaFaseKelas[$faseUpper])) {
+                $kelasFound = Kelas::where('nama_kelas', 'LIKE', '%' . $petaFaseKelas[$faseUpper] . '%')->first();
+                if ($kelasFound) {
+                    $kelasId = $kelasFound->id;
+                }
+            }
+        }
+
         $deskripsiArray = array_values($request->deskripsi_tp);
 
+        // Update record TP yang sedang di-edit
         $tp->update([
+            'sekolah_id'   => $sekolahId,
             'mapel_id'     => $request->mapel_id,
-            'kelas_id'     => $request->kelas_id,
+            'kelas_id'     => $kelasId,
             'fase'         => $request->fase,
             'elemen'       => $request->elemen,
             'kode_tp'      => $request->kode_tp,
             'deskripsi_tp' => $deskripsiArray[0],
         ]);
 
-        // Jika user menambah poin baru di modal edit, simpan sisanya sebagai record baru
+        // Jika user menambah poin baru saat edit, simpan poin sisanya
         if (count($deskripsiArray) > 1) {
             for ($i = 1; $i < count($deskripsiArray); $i++) {
                 TujuanPembelajaran::create([
-                    'sekolah_id'   => Auth::user()->sekolah_id ?? null,
+                    'sekolah_id'   => $sekolahId,
                     'mapel_id'     => $request->mapel_id,
-                    'kelas_id'     => $request->kelas_id,
+                    'kelas_id'     => $kelasId,
                     'fase'         => $request->fase,
                     'elemen'       => $request->elemen,
-                    'kode_tp'      => $request->kode_tp,
+                    'kode_tp'      => $request->kode_tp ? $request->kode_tp . '.' . ($i + 1) : null,
                     'deskripsi_tp' => $deskripsiArray[$i],
                 ]);
             }
