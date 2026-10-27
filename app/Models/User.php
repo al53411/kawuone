@@ -69,9 +69,9 @@ class User extends Authenticatable
     /**
      * Relasi ke Model Sekolah
      */
-   public function users()
+  public function sekolah()
     {
-        return $this->hasMany(User::class);
+        return $this->belongsTo(Sekolah::class, 'sekolah_id');
     }
 
     /**
