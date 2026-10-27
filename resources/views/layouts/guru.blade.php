@@ -85,7 +85,7 @@
                 </button>
             </div>
 
-            <!-- Menu Navigation (overflow-y-scroll dipasang di sini agar lebar sidebar konsisten saat menu terbuka) -->
+            <!-- Menu Navigation -->
             <div class="flex-1 overflow-y-scroll px-4 py-6 space-y-1.5">
                 <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Panel Guru</p>
 
@@ -104,8 +104,7 @@
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i
-                                class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Data Akademik</span>
                         </div>
                         <i id="arrow-akademik"
@@ -129,16 +128,15 @@
                     </div>
                 </div>
 
-                <!-- 2. Dropdown Administrasi Guru -->
+                <!-- 2. Dropdown Administrasi Guru (Termasuk Absen Harian & Mapel) -->
                 @php
-                    $isAdministrasiActive = request()->routeIs('guru.jurnal.*', 'guru.absensi.*', 'guru.modul_ajar.*');
+                    $isAdministrasiActive = request()->routeIs('guru.jurnal.*', 'guru.absensi.*', 'guru.absensi-mapel.*', 'guru.modul_ajar.*');
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i
-                                class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Administrasi</span>
                         </div>
                         <i id="arrow-administrasi"
@@ -157,7 +155,11 @@
                         </a>
                         <a href="{{ route('guru.absensi.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
+                            <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen Harian
+                        </a>
+                        <a href="{{ route('guru.absensi-mapel.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi-mapel.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-book-bookmark text-xs mr-2"></i> Absen Mapel
                         </a>
                     </div>
                 </div>
@@ -170,8 +172,7 @@
                     <button onclick="toggleDropdown('dropdown-penilaian', 'arrow-penilaian')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i
-                                class="fa-solid fa-file-pen text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i class="fa-solid fa-file-pen text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Penilaian</span>
                         </div>
                         <i id="arrow-penilaian"
@@ -216,8 +217,7 @@
                             <p class="text-xs font-semibold text-white truncate">
                                 {{ auth()->user()->name ?? 'Guru Pendidik' }}
                             </p>
-                            <p class="text-[10px] text-slate-400 truncate">{{ auth()->user()->email ??
-                                'guru@sekolah.sch.id' }}</p>
+                            <p class="text-[10px] text-slate-400 truncate">{{ auth()->user()->email ?? 'guru@sekolah.sch.id' }}</p>
                         </div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}" class="shrink-0">

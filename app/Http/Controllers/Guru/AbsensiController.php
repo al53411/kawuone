@@ -32,7 +32,7 @@ class AbsensiController extends Controller
     }
 
     /**
-     * Menampilkan halaman input absensi khusus Guru
+     * Menampilkan halaman input absensi khusus Guru (Wali Kelas)
      */
     public function index(Request $request)
     {
@@ -44,92 +44,113 @@ class AbsensiController extends Controller
         $kelasId = $request->get('kelas_id');
         $mapel   = trim($request->get('mapel', ''));
 
-        // 1. Ambil Data Mapel (Mata Pelajaran) untuk dropdown di View
+        $guru = $user?->guru;
+        $isWaliKelas = false;
+        $isGuruMapel = false;
+
+        if ($guru) {
+            // 1. Cek apakah guru ini adalah Wali Kelas
+            $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
+            $isWaliKelas = count($kelasWaliIds) > 0;
+
+            // 2. Cek apakah guru ini adalah Guru Mapel (pengampu)
+            $kelasPengampuIds = [];
+            try {
+                if (method_exists($guru, 'kelas')) {
+                    $kelasPengampuIds = $guru->kelas()->pluck('kelas.id')->toArray();
+                }
+            } catch (\Exception $e) {
+                $kelasPengampuIds = [];
+            }
+            $isGuruMapel = count($kelasPengampuIds) > 0;
+
+            // =========================================================================
+            // KUNCI UTAMA: Jika guru yang login BUKAN Wali Kelas (melainkan murni Guru Mapel),
+            // alihkan secara otomatis ke halaman Absensi Mata Pelajaran!
+            // =========================================================================
+            if (!$isWaliKelas) {
+                return redirect()->route('guru.absensi-mapel.index');
+            }
+
+            // Jika dia Wali Kelas, batasi pilihan kelas hanya kelas yang diwalinya
+            $kelasQuery = Kelas::whereIn('id', $kelasWaliIds);
+        } else {
+            $kelasQuery = Kelas::query();
+        }
+
+        if ($sekolahId && Schema::hasColumn('kelas', 'sekolah_id')) {
+            $kelasQuery->where('sekolah_id', $sekolahId);
+        }
+
+        $kelases = $kelasQuery->orderBy('nama_kelas', 'asc')->get();
+
+        // 1. Ambil Data Mapel untuk dropdown (jika diperlukan)
         $mapelQuery = Mapel::query();
         if ($sekolahId && Schema::hasColumn('mapels', 'sekolah_id')) {
             $mapelQuery->where('sekolah_id', $sekolahId);
         }
         $mapels = $mapelQuery->orderBy('nama_mapel', 'asc')->get();
 
-        // 2. Filter Kelas yang Diampu / Menjadi Wali bagi Guru Tersebut
-        $kelasQuery = Kelas::query();
-        if ($sekolahId && Schema::hasColumn('kelas', 'sekolah_id')) {
-            $kelasQuery->where('sekolah_id', $sekolahId);
-        }
-
-        $guru = $user?->guru;
-        if ($guru) {
-            $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
-            $kelasPengampuIds = method_exists($guru, 'kelas') 
-                ? $guru->kelas()->pluck('kelas.id')->toArray() 
-                : [];
-
-            $allowedKelasIds = array_unique(array_merge($kelasWaliIds, $kelasPengampuIds));
-
-            if (!empty($allowedKelasIds)) {
-                $kelasQuery->whereIn('id', $allowedKelasIds);
-            }
-        }
-
-        $kelases = $kelasQuery->orderBy('nama_kelas', 'asc')->get();
-
         $siswas          = collect();
         $absensiExisting = [];
 
-        // 3. Ambil Siswa dan Data Absensi jika Kelas dipilih
+        // 3. Ambil Siswa dan Data Absensi jika Kelas dipilih dan valid
         if ($kelasId) {
-            $siswaQuery = Siswa::where('kelas_id', $kelasId);
+            $isAuthorized = $kelases->contains('id', $kelasId);
 
-            if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
-                $siswaQuery->where(function ($q) use ($sekolahId) {
-                    $q->where('sekolah_id', $sekolahId)
-                      ->orWhereNull('sekolah_id');
-                });
+            if ($isAuthorized) {
+                $siswaQuery = Siswa::where('kelas_id', $kelasId);
+
+                if ($sekolahId && Schema::hasColumn('siswas', 'sekolah_id')) {
+                    $siswaQuery->where(function ($q) use ($sekolahId) {
+                        $q->where('sekolah_id', $sekolahId)
+                          ->orWhereNull('sekolah_id');
+                    });
+                }
+
+                if ($request->filled('search')) {
+                    $search = trim($request->search);
+                    $siswaQuery->where(function ($q) use ($search) {
+                        if (Schema::hasColumn('siswas', 'nama_siswa')) {
+                            $q->where('nama_siswa', 'like', "%{$search}%");
+                        } else {
+                            $q->where('nama_lengkap', 'like', "%{$search}%");
+                        }
+                        $q->orWhere('nisn', 'like', "%{$search}%");
+                    });
+                }
+
+                $siswas = $siswaQuery->get()
+                    ->sortBy(function ($siswa) {
+                        return $siswa->nama_siswa ?? $siswa->nama_lengkap ?? $siswa->nama ?? '';
+                    })
+                    ->values();
+
+                // Query Data Absensi
+                $queryAbsensi = Absensi::where('tanggal', $tanggal)
+                    ->where('kelas_id', $kelasId);
+
+                if ($mapel !== '') {
+                    $queryAbsensi->where('mapel', $mapel);
+                } else {
+                    $queryAbsensi->where(function ($q) {
+                        $q->whereNull('mapel')->orWhere('mapel', '');
+                    });
+                }
+
+                if ($sekolahId && Schema::hasColumn('absensis', 'sekolah_id')) {
+                    $queryAbsensi->where('sekolah_id', $sekolahId);
+                }
+
+                $absensiExisting = $queryAbsensi->get()->keyBy('siswa_id');
             }
-
-            if ($request->filled('search')) {
-                $search = trim($request->search);
-                $siswaQuery->where(function ($q) use ($search) {
-                    if (Schema::hasColumn('siswas', 'nama_siswa')) {
-                        $q->where('nama_siswa', 'like', "%{$search}%");
-                    } else {
-                        $q->where('nama_lengkap', 'like', "%{$search}%");
-                    }
-                    $q->orWhere('nisn', 'like', "%{$search}%");
-                });
-            }
-
-            $siswas = $siswaQuery->get()
-                ->sortBy(function ($siswa) {
-                    return $siswa->nama_siswa ?? $siswa->nama_lengkap ?? $siswa->nama ?? '';
-                })
-                ->values();
-
-            // Query Data Absensi
-            $queryAbsensi = Absensi::where('tanggal', $tanggal)
-                ->where('kelas_id', $kelasId);
-
-            if ($mapel !== '') {
-                $queryAbsensi->where('mapel', $mapel);
-            } else {
-                $queryAbsensi->where(function ($q) {
-                    $q->whereNull('mapel')->orWhere('mapel', '');
-                });
-            }
-
-            if ($sekolahId && Schema::hasColumn('absensis', 'sekolah_id')) {
-                $queryAbsensi->where('sekolah_id', $sekolahId);
-            }
-
-            $absensiExisting = $queryAbsensi->get()->keyBy('siswa_id');
         }
 
-        return view('guru.absensi.index', compact('kelases', 'siswas', 'tanggal', 'absensiExisting', 'mapels'));
+        return view('guru.absensi.index', compact(
+            'kelases', 'siswas', 'tanggal', 'absensiExisting', 'mapels', 'isWaliKelas', 'isGuruMapel'
+        ));
     }
 
-    /**
-     * Menyimpan data absensi siswa oleh Guru
-     */
     /**
      * Menyimpan data absensi siswa oleh Guru
      */
@@ -151,7 +172,6 @@ class AbsensiController extends Controller
         $tanggal   = $request->tanggal;
         $mapel     = !empty($request->mapel) ? trim($request->mapel) : null;
         
-        // PERBAIKAN DI SINI: Gunakan user_id dari relasi guru atau langsung Auth::id()
         $guruId    = $user?->guru?->user_id ?? Auth::id();
 
         $kelas = Kelas::find($request->kelas_id);
@@ -188,7 +208,7 @@ class AbsensiController extends Controller
 
                 $updateData = [
                     'kelas_id'   => $finalKelasId,
-                    'guru_id'    => $guruId, // Nilai ini sekarang sesuai dengan ID tabel users
+                    'guru_id'    => $guruId,
                     'status'     => $status,
                     'keterangan' => $data['keterangan'] ?? null,
                 ];
@@ -225,13 +245,10 @@ class AbsensiController extends Controller
         $guru = $user?->guru;
         if ($guru) {
             $kelasWaliIds = Kelas::where('guru_id', $guru->id)->pluck('id')->toArray();
-            $kelasPengampuIds = method_exists($guru, 'kelas') 
-                ? $guru->kelas()->pluck('kelas.id')->toArray() 
-                : [];
-
-            $allowedKelasIds = array_unique(array_merge($kelasWaliIds, $kelasPengampuIds));
-            if (!empty($allowedKelasIds)) {
-                $kelasQuery->whereIn('id', $allowedKelasIds);
+            if (!empty($kelasWaliIds)) {
+                $kelasQuery->whereIn('id', $kelasWaliIds);
+            } else {
+                $kelasQuery->whereRaw('1 = 0');
             }
         }
 

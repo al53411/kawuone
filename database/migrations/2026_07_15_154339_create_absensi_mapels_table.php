@@ -19,13 +19,13 @@ return new class extends Migration
             $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
             $table->foreignId('kelas_id')->constrained('kelas')->onDelete('cascade');
 
-            // 3. Relasi Mapel (Bisa pakai foreignId jika ada tabel mapels, atau string)
+            // 3. Relasi Mapel
             $table->foreignId('mapel_id')->nullable()->constrained('mapels')->onDelete('cascade');
-            // Jika belum ada tabel mapel, pakai string dulu seperti bawaanmu:
-            // $table->string('mapel');
 
             $table->date('tanggal');
-            $table->unsignedSmallInteger('pertemuan_ke'); // Tipe data angka kecil (1-255)
+            
+            // Pertemuan ke- berfungsi sebagai penanda "Minggu ke-" (1, 2, 3, dst.)
+            $table->unsignedSmallInteger('pertemuan_ke'); 
 
             // 4. Status Absensi Menggunakan Enum
             $table->enum('status', ['Hadir', 'Sakit', 'Izin', 'Alfa'])->default('Hadir');
@@ -35,6 +35,13 @@ return new class extends Migration
 
             // 5. Indexing untuk mempercepat query saat filter/cetak absensi
             $table->index(['kelas_id', 'tanggal']);
+
+            // 6. [TAMBAHAN BARU] Mencegah Duplikat Absen
+            // Memastikan 1 siswa hanya bisa diabsen 1 kali per mapel pada pertemuan/minggu yang sama
+            $table->unique(
+                ['siswa_id', 'mapel_id', 'pertemuan_ke'], 
+                'cegah_duplikat_absen_siswa'
+            );
         });
     }
 

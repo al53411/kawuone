@@ -34,6 +34,7 @@ use App\Http\Controllers\Guru\SekolahController as GuruSekolahController;
 use App\Http\Controllers\Guru\ProfilController as GuruProfilController;
 use App\Http\Controllers\Guru\ModulAjarController as GuruModulAjarController;
 use App\Http\Controllers\Guru\NilaiFormatifController;
+use App\Http\Controllers\Guru\AbsensiMapelController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -199,6 +200,10 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::get('/nilai-formatif', [NilaiFormatifController::class, 'index'])->name('nilai-formatif.index');
     Route::post('/nilai-formatif', [NilaiFormatifController::class, 'store'])->name('nilai-formatif.store');
     Route::get('/nilai-formatif/rekap', [NilaiFormatifController::class, 'rekap'])->name('nilai-formatif.rekap');
+
+    // Route untuk Absensi Mapel
+    Route::get('/absensi-mapel', [AbsensiMapelController::class, 'index'])->name('absensi-mapel.index');
+    Route::post('/absensi-mapel', [AbsensiMapelController::class, 'store'])->name('absensi-mapel.store');
 
 });
 
