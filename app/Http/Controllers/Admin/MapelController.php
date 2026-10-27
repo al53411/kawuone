@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class MapelController extends Controller
 {
@@ -52,21 +53,46 @@ class MapelController extends Controller
 
     public function store(Request $request)
     {
+        $sekolahId = $this->getSekolahId();
+
         $request->validate([
-            'kode_mapel' => 'nullable|string|max:50',
-            'nama_mapel' => 'required|string|max:255',
+            'nama_mapel' => [
+                'required',
+                'string',
+                'max:255',
+                // Validasi Unik: Nama mapel tidak boleh sama dalam satu sekolah yang sama
+                Rule::unique('mapels')->where(function ($query) use ($sekolahId) {
+                    return $query->where('sekolah_id', $sekolahId);
+                }),
+            ],
             'kelas_ids'  => 'nullable|array',
             'kelas_ids.*'=> 'exists:kelas,id',
         ], [
             'nama_mapel.required' => 'Nama mata pelajaran wajib diisi.',
+            'nama_mapel.unique'   => 'Mata pelajaran dengan nama tersebut sudah terdaftar di sekolah ini.',
         ]);
 
-        $sekolahId = $this->getSekolahId();
+        // ---------------------------------------------------------
+        // LOGIKA GENERATE KODE MAPEL OTOMATIS (Contoh: MPL-001)
+        // ---------------------------------------------------------
+        $latestMapel = Mapel::where('sekolah_id', $sekolahId)
+                            ->where('kode_mapel', 'like', 'MPL-%')
+                            ->orderBy('id', 'desc')
+                            ->first();
+
+        if ($latestMapel) {
+            $lastNumber = (int) substr($latestMapel->kode_mapel, 4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        $kodeOtomatis = 'MPL-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
 
         // Simpan Master Mapel
         $mapel = Mapel::create([
             'sekolah_id' => $sekolahId,
-            'kode_mapel' => $request->kode_mapel,
+            'kode_mapel' => $kodeOtomatis,
             'nama_mapel' => $request->nama_mapel,
         ]);
 
@@ -75,25 +101,34 @@ class MapelController extends Controller
             $mapel->kelases()->sync($request->kelas_ids);
         }
 
-        return redirect()->back()->with('success', 'Mata pelajaran berhasil ditambahkan.');
+        return redirect()->back()->with('success', 'Mata pelajaran berhasil ditambahkan dengan kode: ' . $kodeOtomatis);
     }
 
     public function update(Request $request, string $id)
     {
+        $sekolahId = $this->getSekolahId();
+
         $request->validate([
-            'kode_mapel' => 'nullable|string|max:50',
-            'nama_mapel' => 'required|string|max:255',
+            'nama_mapel' => [
+                'required',
+                'string',
+                'max:255',
+                // Validasi Unik saat Edit: Abaikan ID mapel yang sedang diedit agar tidak error sendiri
+                Rule::unique('mapels')->where(function ($query) use ($sekolahId) {
+                    return $query->where('sekolah_id', $sekolahId);
+                })->ignore($id),
+            ],
             'kelas_ids'  => 'nullable|array',
             'kelas_ids.*'=> 'exists:kelas,id',
         ], [
             'nama_mapel.required' => 'Nama mata pelajaran wajib diisi.',
+            'nama_mapel.unique'   => 'Mata pelajaran dengan nama tersebut sudah terdaftar di sekolah ini.',
         ]);
 
         $mapel = Mapel::findOrFail($id);
 
         // Update Master Mapel
         $mapel->update([
-            'kode_mapel' => $request->kode_mapel,
             'nama_mapel' => $request->nama_mapel,
         ]);
 

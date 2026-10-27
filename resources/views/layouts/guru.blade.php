@@ -9,11 +9,12 @@
     <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+
     <style>
         .flat-card {
             background-color: #ffffff;
@@ -59,6 +60,8 @@
             background: #94a3b8;
         }
     </style>
+
+    @stack('styles')
 </head>
 
 <body class="bg-slate-100 font-sans antialiased text-slate-800">
@@ -82,8 +85,8 @@
                 </button>
             </div>
 
-            <!-- Menu Navigation -->
-            <div class="flex-1 overflow-y-auto px-4 py-6 space-y-1.5">
+            <!-- Menu Navigation (overflow-y-scroll dipasang di sini agar lebar sidebar konsisten saat menu terbuka) -->
+            <div class="flex-1 overflow-y-scroll px-4 py-6 space-y-1.5">
                 <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Panel Guru</p>
 
                 <!-- Dashboard -->
@@ -93,19 +96,24 @@
                     <span class="text-sm">Dashboard</span>
                 </a>
 
-                <!-- Dropdown Data Akademik -->
+                <!-- 1. Dropdown Data Akademik -->
+                @php
+                    $isAkademikActive = request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'guru.profil.*');
+                @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i
+                                class="fa-solid fa-server text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Data Akademik</span>
                         </div>
                         <i id="arrow-akademik"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'guru.profil.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isAkademikActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-akademik" class="{{ request()->routeIs('guru.siswa.*', 'guru.sekolah.*', 'guru.profil.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-akademik"
+                        class="{{ $isAkademikActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('guru.sekolah.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.sekolah.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-school text-xs mr-2"></i> Data Sekolah
@@ -121,29 +129,32 @@
                     </div>
                 </div>
 
-                <!-- Dropdown Administrasi Guru -->
+                <!-- 2. Dropdown Administrasi Guru -->
+                @php
+                    $isAdministrasiActive = request()->routeIs('guru.jurnal.*', 'guru.absensi.*', 'guru.modul_ajar.*');
+                @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i
+                                class="fa-solid fa-folder-open text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Administrasi</span>
                         </div>
                         <i id="arrow-administrasi"
-                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*', 'guru.modul_ajar.*') ? 'rotate-180' : '' }}"></i>
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isAdministrasiActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-administrasi" class="{{ request()->routeIs('guru.jurnal.*', 'guru.absensi.*', 'guru.modul_ajar.*') ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-administrasi"
+                        class="{{ $isAdministrasiActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ route('guru.jurnal.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.jurnal.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-book-open text-xs mr-2"></i> Jurnal Mengajar
                         </a>
-                        
                         <a href="{{ route('guru.modul_ajar.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.modul_ajar.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-file-lines text-xs mr-2"></i> Modul Ajar
                         </a>
-
                         <a href="{{ route('guru.absensi.index') }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.absensi.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-clipboard-user text-xs mr-2"></i> Absen
@@ -151,22 +162,24 @@
                     </div>
                 </div>
 
-                <!-- Dropdown Penilaian Guru -->
+                <!-- 3. Dropdown Penilaian Guru -->
                 @php
-                $isPenilaianActive = request()->routeIs('guru.nilai.*', 'guru.nilai-formatif.*', 'guru.nilai-sumatif.*', 'guru.rapor.*');
+                    $isPenilaianActive = request()->routeIs('guru.nilai.*', 'guru.nilai-formatif.*', 'guru.nilai-sumatif.*', 'guru.rapor.*');
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-penilaian', 'arrow-penilaian')"
                         class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none text-slate-300">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-file-pen text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
+                            <i
+                                class="fa-solid fa-file-pen text-slate-400 group-hover:text-blue-500 transition w-5 text-center"></i>
                             <span class="font-medium text-sm">Penilaian</span>
                         </div>
                         <i id="arrow-penilaian"
                             class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isPenilaianActive ? 'rotate-180' : '' }}"></i>
                     </button>
 
-                    <div id="dropdown-penilaian" class="{{ $isPenilaianActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                    <div id="dropdown-penilaian"
+                        class="{{ $isPenilaianActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
                         <a href="{{ Route::has('guru.nilai.index') ? route('guru.nilai.index') : '#' }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai.index', 'guru.nilai.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
                             <i class="fa-solid fa-pen-to-square text-xs mr-2"></i> Input Nilai Siswa
@@ -177,7 +190,7 @@
                         </a>
                         <a href="{{ Route::has('guru.nilai-formatif.rekap') ? route('guru.nilai-formatif.rekap') : '#' }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai-formatif.rekap') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
-                            <i class="fa-solid fa-table-list text-xs mr-2"></i> Rekap Nilai Formatif
+                            <i class="fa-solid fa-table-list text-xs mr-2"></i> Rekap Nilai
                         </a>
                         <a href="{{ Route::has('guru.nilai-sumatif.index') ? route('guru.nilai-sumatif.index') : '#' }}"
                             class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('guru.nilai-sumatif.*') ? 'text-blue-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
@@ -189,24 +202,28 @@
                         </a>
                     </div>
                 </div>
-
             </div>
 
             <!-- Profile & Logout Footer -->
             <div class="p-4 border-t border-slate-800 bg-slate-900/50">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3 overflow-hidden">
-                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                        <div
+                            class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                             {{ strtoupper(substr(auth()->user()->name ?? 'G', 0, 1)) }}
                         </div>
                         <div class="truncate">
-                            <p class="text-xs font-semibold text-white truncate">{{ auth()->user()->name ?? 'Guru Pendidik' }}</p>
-                            <p class="text-[10px] text-slate-400 truncate">{{ auth()->user()->email ?? 'guru@sekolah.sch.id' }}</p>
+                            <p class="text-xs font-semibold text-white truncate">
+                                {{ auth()->user()->name ?? 'Guru Pendidik' }}
+                            </p>
+                            <p class="text-[10px] text-slate-400 truncate">{{ auth()->user()->email ??
+                                'guru@sekolah.sch.id' }}</p>
                         </div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}" class="shrink-0">
                         @csrf
-                        <button type="submit" class="text-slate-400 hover:text-red-400 p-1.5 rounded transition" title="Logout">
+                        <button type="submit" class="text-slate-400 hover:text-red-400 p-1.5 rounded transition"
+                            title="Logout">
                             <i class="fa-solid fa-right-from-bracket text-sm"></i>
                         </button>
                     </form>
@@ -235,7 +252,7 @@
                         <span class="text-slate-600 font-medium">@yield('page_title', 'Dashboard')</span>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center space-x-3">
                     @php
                         $sekolahId = auth()->user()->sekolah_id ?? null;
@@ -243,15 +260,21 @@
                     @endphp
 
                     @if($taAktif)
-                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <i class="fa-solid fa-calendar-days mr-1.5"></i> TP: {{ $taAktif->tahun }}
+                            ({{ $taAktif->semester }})
                         </span>
                     @elseif(!$sekolahId)
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200" title="User belum terhubung ke sekolah_id">
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
+                            title="User belum terhubung ke sekolah_id">
                             <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Sekolah Belum Set
                         </span>
                     @else
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200" title="Belum ada Tahun Ajaran yang di-set Aktif">
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200"
+                            title="Belum ada Tahun Ajaran yang di-set Aktif">
                             <i class="fa-solid fa-calendar-xmark mr-1.5"></i> TP Belum Aktif
                         </span>
                     @endif
@@ -259,7 +282,8 @@
                     <span class="text-sm font-semibold text-slate-700 hidden sm:inline">
                         {{ Auth::user()->name ?? 'Guru' }}
                     </span>
-                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                    <div
+                        class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
                         {{ strtoupper(substr(Auth::user()->name ?? 'G', 0, 1)) }}
                     </div>
                 </div>
@@ -311,23 +335,25 @@
 
         // Flash Notification via SweetAlert2
         @if(session('success'))
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: @json(session('success')),
-            showConfirmButton: false,
-            timer: 2000
-        });
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: @json(session('success')),
+                showConfirmButton: false,
+                timer: 2000
+            });
         @endif
 
         @if(session('error'))
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: @json(session('error'))
-        });
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: @json(session('error'))
+            });
         @endif
     </script>
+
+    @stack('scripts')
 </body>
 
 </html>

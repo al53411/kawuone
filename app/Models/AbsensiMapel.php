@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAbsensiMapel
+ */
 class AbsensiMapel extends Model
 {
     protected $fillable = ['siswa_id', 'kelas_id', 'mapel', 'tanggal', 'pertemuan_ke', 'status'];

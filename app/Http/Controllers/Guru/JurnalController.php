@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use PhpOffice\PhpWord\TemplateProcessor;
 
@@ -22,9 +23,16 @@ class JurnalController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $sekolahId = $user->sekolah_id ?? $user->guru?->sekolah_id;
+        
+        // 1. Cari profil guru yang terikat dengan user yang login
+        $guru = $user->guru;
+        if (!$guru && class_exists(\App\Models\Guru::class)) {
+            $guru = \App\Models\Guru::where('user_id', $user->id)->first();
+        }
 
-        // 1. Query Dasar Jurnal Guru
+        $sekolahId = $user->sekolah_id ?? $guru?->sekolah_id;
+
+        // Query Dasar Jurnal Guru
         $query = JurnalGuru::with('kelas')->where('guru_id', $user->id);
 
         if ($request->filled('bulan')) {
@@ -44,9 +52,8 @@ class JurnalController extends Controller
 
         // 2. PENYARINGAN KELAS DINAMIS (Wali Kelas vs Guru Mapel)
         $userId = $user->id;
-        $guruTableId = $user->guru->id ?? null;
+        $guruTableId = $guru ? $guru->id : null;
 
-        // Cek apakah guru ini terdaftar sebagai Wali Kelas di tabel 'kelas'
         $kelasWali = Kelas::where(function($q) use ($userId, $guruTableId) {
                 $q->where('guru_id', $userId);
                 if ($guruTableId) {
@@ -59,22 +66,42 @@ class JurnalController extends Controller
             ->orderBy('nama_kelas', 'asc')
             ->get();
 
-        // Jika terdaftar sebagai Wali Kelas, ambil kelas miliknya saja
         if ($kelasWali->isNotEmpty()) {
             $kelases = $kelasWali;
         } else {
-            // Jika BUKAN Wali Kelas (Guru Mapel), tampilkan SEMUA kelas
-            $kelases = Kelas::when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
-                    $q->where('sekolah_id', $sekolahId);
-                })
-                ->orderBy('nama_kelas', 'asc')
-                ->get();
+            if ($guru && method_exists($guru, 'kelas') && $guru->kelas()->exists()) {
+                $kelases = $guru->kelas()->orderBy('nama_kelas', 'asc')->get();
+            } else {
+                $kelases = Kelas::when($sekolahId && Schema::hasColumn('kelas', 'sekolah_id'), function ($q) use ($sekolahId) {
+                        $q->where('sekolah_id', $sekolahId);
+                    })
+                    ->orderBy('nama_kelas', 'asc')
+                    ->get();
+            }
         }
 
-        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        // 3. PENYARINGAN MAPEL BERDASARKAN RELASI (Eager load relasi kelases)
+        $kelasIds = $kelases->pluck('id')->filter();
 
-        // 3. Ambil Tujuan Pembelajaran
-        $tujuanPembelajarans = TujuanPembelajaran::with(['mapel', 'kelas'])->get();
+        if ($guru && method_exists($guru, 'mapels') && $guru->mapels()->exists()) {
+            $mapels = $guru->mapels()->with('kelases')->orderBy('nama_mapel', 'asc')->get();
+        } else {
+            // Ambil seluruh mapel di sekolah yang sama agar mapel lintas kelas (seperti PAI) tetap terbawa
+            $mapels = Mapel::with('kelases')
+                ->when($sekolahId, function($q) use ($sekolahId) {
+                    $q->where('sekolah_id', $sekolahId);
+                })->orderBy('nama_mapel', 'asc')->get();
+        }
+
+        // Hapus duplikat nama mapel jika di database terlanjur ada data ganda
+        $mapels = $mapels->unique('nama_mapel')->values();
+
+        // 4. Ambil Tujuan Pembelajaran Terfilter Saja
+        $mapelIdsFinal = $mapels->pluck('id');
+        $tujuanPembelajarans = TujuanPembelajaran::with(['mapel', 'kelas'])
+            ->whereIn('kelas_id', $kelasIds)
+            ->whereIn('mapel_id', $mapelIdsFinal)
+            ->get();
 
         return view('guru.jurnal.index', compact('jurnals', 'kelases', 'mapels', 'tujuanPembelajarans'));
     }
@@ -82,27 +109,21 @@ class JurnalController extends Controller
     /**
      * Menyimpan jurnal mengajar baru ke database
      */
-    /**
-     * Menyimpan jurnal mengajar baru ke database
-     */
     public function store(Request $request)
     {
-        // 1. Ubah validasi 'materi' menjadi nullable
         $request->validate([
             'tanggal'    => 'required|date',
             'kelas_id'   => 'required|exists:kelas,id',
             'mapel'      => 'required|string', 
             'jam_ke'     => 'required|string|max:255',
-            'materi'     => 'nullable|string', // Boleh kosong jika sudah pilih TP
+            'materi'     => 'nullable|string', 
             'select_tp'  => 'nullable|string',
             'kegiatan'   => 'required|string',
             'keterangan' => 'nullable|string|max:255',
         ]);
 
-        // 2. Tentukan isi materi: jika textarea diisi pakai textarea, jika tidak gunakan isi dropdown TP
         $isiMateri = $request->filled('materi') ? $request->materi : $request->select_tp;
 
-        // Pastikan materi tidak benar-benar kosong keduanya
         if (empty(trim($isiMateri))) {
             return redirect()->back()->with('error', 'Silakan pilih TP dari dropdown atau ketikkan materi pembelajaran.');
         }
@@ -118,7 +139,7 @@ class JurnalController extends Controller
             'tanggal'         => $request->tanggal,
             'jam_ke'          => $request->jam_ke,
             'mapel'           => $request->mapel,
-            'materi'          => $isiMateri, // Menggunakan materi yang sudah otomatis terisi
+            'materi'          => $isiMateri, 
             'kegiatan'        => $request->kegiatan,
             'keterangan'      => $request->keterangan,
             'status_validasi' => 'Pending',

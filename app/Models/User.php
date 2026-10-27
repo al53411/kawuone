@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * @mixin IdeHelperUser
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -66,9 +69,9 @@ class User extends Authenticatable
     /**
      * Relasi ke Model Sekolah
      */
-    public function sekolah()
+   public function users()
     {
-        return $this->belongsTo(Sekolah::class, 'sekolah_id');
+        return $this->hasMany(User::class);
     }
 
     /**

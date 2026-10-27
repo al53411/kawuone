@@ -1,0 +1,21 @@
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - routes
+
+    scanFiles:
+        - _ide_helper.php
+        - _ide_helper_models.php
+
+    level: 1
+
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        - '#Relation .* is not found in .* model#'
+        - '#PHPDoc tag @use has invalid type Database\\Factories\\UserFactory#'
+        - '#PHPDoc tag @mixin contains unknown class#'
