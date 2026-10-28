@@ -84,10 +84,16 @@
             / Simpan PDF</button>
     </div>
 
-    <div class="header">
-        <h3>REKAPITULASI KEHADIRAN SISWA</h3>
-        <h2>{{ strtoupper($profilSekolah->nama_sekolah ?? 'SDN KAWU 1') }}</h2>
-        <p>{{ $profilSekolah->alamat ?? '' }}</p>
+    <div class="text-center border-b-2 border-slate-900 pb-3 mb-4">
+        <h2 class="text-xl font-bold uppercase tracking-wider text-slate-900">
+            {{ Auth::user()?->sekolah?->nama_sekolah ?? $profilSekolah?->nama_sekolah ?? 'Sekolah' }}.
+        </h2>
+        <p class="text-xs text-slate-600">
+            {{ $profilSekolah->alamat ?? 'Kecamatan Kedunggalar, Kabupaten Ngawi' }}
+        </p>
+        <h3 class="text-base font-bold uppercase mt-2 tracking-wide text-slate-800">
+            REKAPITULASI PRESENSI SISWA HARIAN
+        </h3>
     </div>
 
     <table class="info-table">
