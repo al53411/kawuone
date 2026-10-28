@@ -13,7 +13,7 @@
                     pelajaran.</p>
             </div>
             <div>
-                <a href="{{ route('guru.absensi.rekap') }}"
+                <a href="{{ route('guru.absensi-mapel.rekap') }}"
                     class="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-900 active:bg-black text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-sm">
                     <span>📊</span> Lihat Rekap Bulanan
                 </a>
@@ -183,11 +183,11 @@
                                                 onchange="syncToDesk({{ $siswa->id }}, '{{ $st }}')">
                                             <div
                                                 class="py-1.5 text-xs font-semibold rounded-lg border border-slate-200 
-                                                                                                                                {{ $st == 'Hadir' ? 'peer-checked:bg-emerald-600 peer-checked:border-emerald-600' : '' }}
-                                                                                                                                {{ $st == 'Izin' ? 'peer-checked:bg-blue-600 peer-checked:border-blue-600' : '' }}
-                                                                                                                                {{ $st == 'Sakit' ? 'peer-checked:bg-amber-500 peer-checked:border-amber-500' : '' }}
-                                                                                                                                {{ $st == 'Alpa' ? 'peer-checked:bg-rose-600 peer-checked:border-rose-600' : '' }}
-                                                                                                                                peer-checked:text-white text-slate-600 transition">
+                                                                                                                                                {{ $st == 'Hadir' ? 'peer-checked:bg-emerald-600 peer-checked:border-emerald-600' : '' }}
+                                                                                                                                                {{ $st == 'Izin' ? 'peer-checked:bg-blue-600 peer-checked:border-blue-600' : '' }}
+                                                                                                                                                {{ $st == 'Sakit' ? 'peer-checked:bg-amber-500 peer-checked:border-amber-500' : '' }}
+                                                                                                                                                {{ $st == 'Alpa' ? 'peer-checked:bg-rose-600 peer-checked:border-rose-600' : '' }}
+                                                                                                                                                peer-checked:text-white text-slate-600 transition">
                                                 {{ $st }}
                                             </div>
                                         </label>
@@ -236,11 +236,11 @@
                                                             onchange="syncToMobile({{ $siswa->id }}, '{{ $st }}')">
                                                         <span
                                                             class="px-3 py-1 text-xs font-semibold rounded-lg block 
-                                                                                                                                            {{ $st == 'Hadir' ? 'peer-checked:bg-emerald-600' : '' }}
-                                                                                                                                            {{ $st == 'Izin' ? 'peer-checked:bg-blue-600' : '' }}
-                                                                                                                                            {{ $st == 'Sakit' ? 'peer-checked:bg-amber-500' : '' }}
-                                                                                                                                            {{ $st == 'Alpa' ? 'peer-checked:bg-rose-600' : '' }}
-                                                                                                                                            peer-checked:text-white text-slate-600 transition">
+                                                                                                                                                            {{ $st == 'Hadir' ? 'peer-checked:bg-emerald-600' : '' }}
+                                                                                                                                                            {{ $st == 'Izin' ? 'peer-checked:bg-blue-600' : '' }}
+                                                                                                                                                            {{ $st == 'Sakit' ? 'peer-checked:bg-amber-500' : '' }}
+                                                                                                                                                            {{ $st == 'Alpa' ? 'peer-checked:bg-rose-600' : '' }}
+                                                                                                                                                            peer-checked:text-white text-slate-600 transition">
                                                             {{ $st }}
                                                         </span>
                                                     </label>

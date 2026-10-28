@@ -204,6 +204,8 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     // Route untuk Absensi Mapel
     Route::get('/absensi-mapel', [AbsensiMapelController::class, 'index'])->name('absensi-mapel.index');
     Route::post('/absensi-mapel', [AbsensiMapelController::class, 'store'])->name('absensi-mapel.store');
+    Route::get('/absensi-mapel/rekap', [AbsensiMapelController::class, 'rekap'])->name('absensi-mapel.rekap');
+    Route::get('/absensi-mapel/cetak', [AbsensiMapelController::class, 'cetakRekap'])->name('absensi-mapel.cetak');
 
 });
 
