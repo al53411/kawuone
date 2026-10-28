@@ -174,7 +174,7 @@
                     </button>
 
                     <div class="flex items-center space-x-2 text-sm text-gray-500">
-                        <span class="font-semibold text-emerald-600">CBT ONLINE</span>
+                        <span class="font-semibold text-emerald-600">Superadmin</span>
                         <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
                         <span class="text-gray-600">@yield('page_title', 'Dashboard Pusat')</span>
                     </div>
