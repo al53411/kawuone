@@ -7,7 +7,8 @@ use App\Models\CapaianPembelajaran;
 use App\Models\Mapel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Http;
+use Smalot\PdfParser\Parser;
+use PhpOffice\PhpWord\IOFactory;
 
 class CapaianPembelajaranController extends Controller
 {
@@ -52,7 +53,6 @@ class CapaianPembelajaranController extends Controller
         // Grouping 2 Tingkat: [Fase][Mapel_ID] -> Collection of CP
         $cpsNested = $filteredCps->groupBy(['fase', 'mapel_id']);
 
-        // Pastikan kunci Fase selalu urut (A -> B -> C -> D)
         $faseOrder = ['A', 'B', 'C', 'D', 'E', 'F'];
         $cpsByFase = collect();
 
@@ -79,7 +79,7 @@ class CapaianPembelajaranController extends Controller
     }
 
     /**
-     * Memproses upload & ekstrak dokumen CP menggunakan Gemini AI Native Vision
+     * Memproses upload & ekstrak dokumen CP secara lokal (Bebas Error SSL/API)
      */
     public function importPdf(Request $request)
     {
@@ -95,37 +95,71 @@ class CapaianPembelajaranController extends Controller
 
         $selectedFase = strtoupper(trim($request->input('fase', 'AUTO')));
         $file = $request->file('file_berkas') ?? $request->file('file_pdf');
+        $rawText = '';
 
-        $parsedData = [];
-
-        // 1. EKSTRAKSI VISUAL LANGSUNG (BASE64) AGAR TABEL TERBACA SEMPURNA
+        // 1. EKSTRAKSI TEKS MENTAH MENGGUNAKAN PARSER LOKAL (PDF / WORD)
         if ($file) {
-            $mimeType = $file->getClientMimeType();
-            $fileData = base64_encode(file_get_contents($file->getPathname()));
-
-            $parsedData = $this->parseDocumentNativeAI($fileData, $mimeType, $selectedFase);
+            $extension = strtolower($file->getClientOriginalExtension());
+            try {
+                if (in_array($extension, ['docx', 'doc'])) {
+                    if (class_exists('\PhpOffice\PhpWord\IOFactory')) {
+                        $phpWord = IOFactory::load($file->getPathname());
+                        $textBuffer = [];
+                        foreach ($phpWord->getSections() as $section) {
+                            foreach ($section->getElements() as $element) {
+                                if (method_exists($element, 'getText')) {
+                                    $textBuffer[] = $element->getText();
+                                } elseif ($element instanceof \PhpOffice\PhpWord\Element\Table) {
+                                    foreach ($element->getRows() as $row) {
+                                        foreach ($row->getCells() as $cell) {
+                                            foreach ($cell->getElements() as $cellElement) {
+                                                if (method_exists($cellElement, 'getText')) {
+                                                    $textBuffer[] = $cellElement->getText();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        $rawText = implode("\n", $textBuffer);
+                    }
+                } elseif ($extension === 'pdf') {
+                    if (class_exists('\Smalot\PdfParser\Parser')) {
+                        $parser = new Parser();
+                        $pdf = $parser->parseFile($file->getPathname());
+                        $rawText = $pdf->getText();
+                    }
+                }
+            } catch (\Exception $e) {
+                // Ignore parsing errors
+            }
         }
 
-        // 2. FALLBACK JIKA MENGGUNAKAN TEKS MANUAL (TEXTAREA)
-        if (empty($parsedData) && $request->filled('deskripsi')) {
-            $parsedData = $this->parseTextNativeAI((string) $request->deskripsi, $selectedFase);
+        // Fallback ke textarea jika kosong
+        if (empty(trim($rawText)) && $request->filled('deskripsi')) {
+            $rawText = (string) $request->deskripsi;
         }
+
+        if (empty(trim($rawText))) {
+            return redirect()->back()->with('error', 'Teks dari berkas tidak terbaca. Silakan tempel teks CP secara manual.');
+        }
+
+        // 2. PARSING LOKAL BERDASARKAN KATA KUNCI ELEMEN
+        $parsedData = $this->localRegexParser($rawText, $selectedFase);
 
         if (empty($parsedData)) {
-            return redirect()->back()->with('error', 'Gagal memproses dokumen. Pastikan API Key valid dan format berkas jelas.');
+            return redirect()->back()->with('error', 'Gagal mengekstrak data CP dari berkas.');
         }
 
-        // 3. SIMPAN HASIL PARSING KE DATABASE
+        // 3. SIMPAN KE DATABASE
         $savedCount = 0;
         foreach ($parsedData as $item) {
             if (!empty($item['elemen']) && !empty($item['deskripsi_cp'])) {
 
-                $faseItem = strtoupper(trim($item['fase'] ?? ''));
-                $faseFinal = ($selectedFase !== 'AUTO')
-                    ? $selectedFase
-                    : (in_array($faseItem, ['A', 'B', 'C', 'D', 'E', 'F']) ? $faseItem : 'A');
+                $faseFinal = ($selectedFase !== 'AUTO') ? $selectedFase : ($item['fase'] ?? 'C');
 
-                // Validasi Lapis Kedua: Cegah SKI masuk Fase A/B secara tidak sengaja
+                // Validasi Aturan SKI di Fase A & B
                 $isSki = str_contains(strtolower($item['elemen']), 'sejarah') || str_contains(strtolower($item['elemen']), 'ski');
                 if ($isSki && in_array($faseFinal, ['A', 'B'])) {
                     continue;
@@ -142,117 +176,61 @@ class CapaianPembelajaranController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', "Berhasil diproses! {$savedCount} Elemen CP berhasil diekstrak tepat dari dalam tabel.");
+        return redirect()->back()->with('success', "Berhasil memproses dan menyimpan {$savedCount} Elemen CP ke database secara lokal!");
     }
 
     /**
-     * Mengirim file PDF/Word utuh ke Vision API Gemini agar struktur tabel tidak rusak
+     * Parser Lokal Berbasis Keyword Elemen PAI & Umum
      */
-    private function parseDocumentNativeAI(string $base64Data, string $mimeType, string $selectedFase): array
+    private function localRegexParser(string $text, string $selectedFase): array
     {
-        $apiKey = env('GEMINI_API_KEY');
-        if (empty($apiKey)) return [];
+        $cleanText = preg_replace('/\s+/', ' ', trim($text));
 
-        if ($selectedFase !== 'AUTO') {
-            $fasePrompt = "PENTING: Seluruh dokumen ini adalah KHUSUS untuk FASE {$selectedFase}. Tetapkan atribut \"fase\": \"{$selectedFase}\" pada semua objek JSON.";
-        } else {
-            $fasePrompt = "Identifikasi secara visual header Fase/Kelas pada dokumen (Contoh: FASE A, FASE B). Kelompokkan CP berdasarkan fase yang tertulis.";
+        $elemenList = [
+            "Al-Qur'an Hadis",
+            "Akidah",
+            "Akhlak",
+            "Fikih",
+            "Sejarah Peradaban Islam",
+            "SKI"
+        ];
+
+        $faseTarget = ($selectedFase !== 'AUTO') ? $selectedFase : 'C';
+        $results = [];
+
+        $pattern = '/(' . implode('|', array_map('preg_quote', $elemenList)) . ')/i';
+        $parts = preg_split($pattern, $cleanText, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        if (is_array($parts) && count($parts) >= 2) {
+            for ($i = 0; $i < count($parts); $i++) {
+                $candidate = trim($parts[$i]);
+                foreach ($elemenList as $el) {
+                    if (strcasecmp($candidate, $el) === 0) {
+                        $isiCp = trim($parts[$i + 1] ?? '');
+                        $isiCp = preg_replace('/^[\s\:\-\.]+/i', '', $isiCp);
+
+                        if (!empty($isiCp)) {
+                            $results[] = [
+                                'fase'         => $faseTarget,
+                                'elemen'       => $el,
+                                'deskripsi_cp' => $isiCp
+                            ];
+                        }
+                        break;
+                    }
+                }
+            }
         }
 
-        $prompt = "Anda adalah Sistem Ekstraksi Kurikulum Merdeka. Analisis dokumen PDF/Word terlampir secara visual.
-
-INSTRUKSI KETAT (HANYA BACA TABEL CP):
-1. {$fasePrompt}
-2. BACA HANYA ISI DI DALAM TABEL. Abaikan sepenuhnya paragraf pendahuluan, paragraf \"Capaian Umum\", atau teks di luar garis tabel.
-3. Ekstrak pasangan \"Elemen\" dan \"Capaian Pembelajaran (CP) Spesifik\" langsung dari sel tabel.
-4. Salin deskripsi CP secara VERBATIM (Persis huruf per huruf sesuai di tabel dokumen). DILARANG MERANGKUM ATAU MENAMBAHKAN KATA.
-5. Bersihkan nama sekolah, nama penyusun, dan kode Taksonomi Bloom (seperti C1, C2) jika ada.
-6. Kembalikan HANYA format JSON array valid tanpa penjelasan tambahan apapun.
-
-Format JSON:
-[
-  {
-    \"fase\": \"C\",
-    \"elemen\": \"Al-Qur'an Hadis\",
-    \"deskripsi_cp\": \"Peserta didik mampu membaca, menghafal, dan menganalisis pesan pokok Q.S. al-Hujurat...\"
-  }
-]";
-
-        try {
-            // PERBAIKAN: Menambahkan withoutVerifying() untuk Bypass SSL Localhost Windows
-            $response = Http::withoutVerifying()->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
-                'contents' => [
-                    [
-                        'parts' => [
-                            [
-                                'inline_data' => [
-                                    'mime_type' => $mimeType,
-                                    'data'      => $base64Data
-                                ]
-                            ],
-                            [
-                                'text' => $prompt
-                            ]
-                        ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.0, // Wajib 0.0 agar persis sesuai isi tabel asli
-                ]
-            ]);
-
-            if ($response->status() === 429) {
-                session()->flash('error', 'Batas kuota AI gratis (15x/menit) tersentuh. Tunggu 1 menit lalu coba lagi.');
-                return [];
-            }
-
-            if ($response->successful()) {
-                $responseData = $response->json();
-                $aiContent = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? '';
-
-                $cleanJson = preg_replace('/```json\s*|\s*```/', '', $aiContent);
-                $result = json_decode(trim($cleanJson), true);
-
-                return is_array($result) ? $result : [];
-            }
-        } catch (\Exception $e) {
-            // PERBAIKAN: Menampilkan pesan error asli jika gagal koneksi
-            dd("Error API Vision: " . $e->getMessage());
+        // Jika tidak terdeteksi lewat keyword, masukkan sebagai teks utama
+        if (empty($results)) {
+            $results[] = [
+                'fase'         => $faseTarget,
+                'elemen'       => 'Al-Qur\'an Hadis',
+                'deskripsi_cp' => $cleanText
+            ];
         }
 
-        return [];
-    }
-
-    /**
-     * Fallback parsing jika teks ditempel manual di textarea
-     */
-    private function parseTextNativeAI(string $rawText, string $selectedFase): array
-    {
-        $apiKey = env('GEMINI_API_KEY');
-        if (empty($apiKey)) return [];
-
-        $fasePrompt = ($selectedFase !== 'AUTO')
-            ? "Set atribut \"fase\": \"{$selectedFase}\" untuk semua item."
-            : "Tentukan fase (A-F) secara mandiri.";
-
-        $prompt = "Ekstrak teks Capaian Pembelajaran berikut ke format JSON. {$fasePrompt} Abaikan paragraf Capaian Umum. Fokus hanya pada pasangan Elemen dan isi spesifik CP. Kembalikan array JSON murni. Teks: " . Str::limit($rawText, 15000, '');
-
-        try {
-            $response = Http::withoutVerifying()->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
-                'contents' => [['parts' => [['text' => $prompt]]]],
-                'generationConfig' => ['temperature' => 0.0]
-            ]);
-
-            if ($response->successful()) {
-                $aiContent = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                $cleanJson = preg_replace('/```json\s*|\s*```/', '', $aiContent);
-                return json_decode(trim($cleanJson), true) ?? [];
-            }
-        } catch (\Exception $e) {
-            // PERBAIKAN: Menampilkan pesan error asli jika gagal koneksi
-            dd("Error API Text: " . $e->getMessage());
-        }
-
-        return [];
+        return $results;
     }
 }

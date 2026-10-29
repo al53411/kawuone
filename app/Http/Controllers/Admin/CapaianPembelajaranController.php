@@ -15,11 +15,18 @@ class CapaianPembelajaranController extends Controller
     {
         $query = CapaianPembelajaran::with('mapel');
 
-        // Filter berdasarkan Sekolah (Milik sekolah login ATAU data master nasional NULL)
-        if (Auth::check() && Auth::user()->sekolah_id) {
-            $query->where(function ($q) {
-                $q->where('sekolah_id', Auth::user()->sekolah_id)
-                  ->orWhereNull('sekolah_id');
+        // Filter berdasarkan Sekolah: 
+        // Mengambil data milik sekolah user yang login ATAU data pusat (sekolah_id NULL atau role pusat)
+        if (Auth::check()) {
+            $user = Auth::user();
+            $query->where(function ($q) use ($user) {
+                if ($user->sekolah_id) {
+                    $q->where('sekolah_id', $user->sekolah_id)
+                      ->orWhereNull('sekolah_id');
+                } else {
+                    // Jika yang login superadmin/pusat, tampilkan semua atau filter spesifik
+                    $q->orWhereNull('sekolah_id')->orWhere('sekolah_id', '!=', null);
+                }
             });
         }
 
@@ -39,7 +46,11 @@ class CapaianPembelajaranController extends Controller
             });
         }
 
-        $cps = $query->latest()->paginate(15)->withQueryString();
+        // Urutan prioritas elemen khusus (Opsional untuk kerapian tampilan)
+        $query->orderBy('fase', 'asc')
+              ->latest();
+
+        $cps = $query->paginate(15)->withQueryString();
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelass = Kelas::orderBy('nama_kelas', 'asc')->get();
 
@@ -55,9 +66,12 @@ class CapaianPembelajaranController extends Controller
             'deskripsi_cp' => 'required|string',
         ]);
 
-        // Otomatis assign sekolah_id pengelola jika ada
-        if (Auth::check() && Auth::user()->sekolah_id) {
+        // Otomatis assign sekolah_id pengelola jika ada, 
+        // Jika dikosongkan/null berarti masuk sebagai data master pusat
+        if (Auth::check() && Auth::user()->sekolah_id && !$request->has('sebagai_pusat')) {
             $validated['sekolah_id'] = Auth::user()->sekolah_id;
+        } else {
+            $validated['sekolah_id'] = null; // Data Admin Pusat / Nasional
         }
 
         CapaianPembelajaran::create($validated);
@@ -94,11 +108,14 @@ class CapaianPembelajaranController extends Controller
     {
         $query = CapaianPembelajaran::query();
 
-        // 1. Filter Sekolah (Sertakan data khusus sekolah + data master nasional NULL)
-        if (Auth::check() && Auth::user()->sekolah_id) {
-            $query->where(function ($q) {
-                $q->where('sekolah_id', Auth::user()->sekolah_id)
-                  ->orWhereNull('sekolah_id');
+        // 1. Filter Sekolah (Sertakan data khusus sekolah + data master pusat NULL)
+        if (Auth::check()) {
+            $user = Auth::user();
+            $query->where(function ($q) use ($user) {
+                if ($user->sekolah_id) {
+                    $q->where('sekolah_id', $user->sekolah_id)
+                      ->orWhereNull('sekolah_id');
+                }
             });
         }
 
