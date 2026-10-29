@@ -90,6 +90,10 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 
     // CRUD Management Account User oleh Superadmin
     Route::resource('users', UserController::class);
+
+    // Route Upload & Import PDF CP
+    Route::get('/capaian-pembelajaran', [\App\Http\Controllers\Superadmin\CapaianPembelajaranController::class, 'index'])->name('capaian-pembelajaran.index');
+    Route::post('/capaian-pembelajaran/import-pdf', [\App\Http\Controllers\Superadmin\CapaianPembelajaranController::class, 'importPdf'])->name('capaian-pembelajaran.import-pdf');
 });
 
 

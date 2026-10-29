@@ -128,6 +128,34 @@
                     </div>
                 </div>
 
+                <!-- Kurikulum & Akademik Pusat -->
+                <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pt-4 mb-2">Akademik &
+                    Kurikulum</p>
+
+                @php
+                    $isAkademikActive = request()->routeIs('superadmin.capaian-pembelajaran.*');
+                @endphp
+                <div class="space-y-1">
+                    <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
+                        class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition group focus:outline-none {{ $isAkademikActive ? 'text-white font-medium' : '' }}">
+                        <div class="flex items-center space-x-3">
+                            <i
+                                class="fa-solid fa-book-bookmark w-5 text-center {{ $isAkademikActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400' }} transition"></i>
+                            <span class="font-medium text-sm">Kurikulum Merdeka</span>
+                        </div>
+                        <i id="arrow-akademik"
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isAkademikActive ? 'rotate-180' : '' }}"></i>
+                    </button>
+
+                    <div id="dropdown-akademik"
+                        class="{{ $isAkademikActive ? '' : 'hidden' }} pl-11 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+                        <a href="{{ route('superadmin.capaian-pembelajaran.index') }}"
+                            class="block py-2 px-3 text-sm rounded-md transition {{ request()->routeIs('superadmin.capaian-pembelajaran.*') ? 'text-emerald-400 font-semibold bg-slate-800/50' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-file-pdf text-xs mr-2"></i> Master CP (Upload PDF)
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Monitoring Lintas Role -->
                 <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pt-4 mb-2">Monitoring
                     Lintas Role</p>
