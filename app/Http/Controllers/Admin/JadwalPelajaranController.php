@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Mapel;
 use App\Models\AlokasiWaktu;
 use App\Models\JadwalPelajaran;
-use App\Models\Guru; // Pastikan model Guru di-import
+use App\Models\Guru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\TahunAjaran; // Pastikan model TahunAjaran sudah di-import di atas
+use App\Models\TahunAjaran;
 
 class JadwalPelajaranController extends Controller
 {
@@ -20,11 +20,6 @@ class JadwalPelajaranController extends Controller
     {
         $kelasAktif = $request->get('kelas', 'Kelas 1');
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
-
-        // ⚠️ CATATAN PENTING:
-        // Sesuaikan kolom 'name' / 'nama_lengkap' / 'nama' di bawah ini 
-        // dengan nama kolom asli yang ada di tabel 'gurus' database Anda.
-        // Contoh umum di Laravel: 'name', atau jika di migrasi custom: 'nama' / 'nama_lengkap'.
         $gurus = Guru::orderBy('nama_lengkap', 'asc')->get();
 
         // Ambil data alokasi waktu per mapel untuk kelas terpilih
@@ -33,7 +28,11 @@ class JadwalPelajaranController extends Controller
         // Ambil daftar jadwal manual per baris yang sudah diinput untuk kelas ini
         $jadwalsList = JadwalPelajaran::where('kelas', $kelasAktif)->orderBy('hari')->orderBy('jam_ke')->get();
 
-        return view('admin.jadwal.index', compact('mapels', 'kelasAktif', 'alokasis', 'jadwalsList', 'gurus'));
+        // Hitung total target jam vs total jadwal terisi
+        $totalTargetJam = $alokasis->sum('jumlah_jam');
+        $totalJadwalTerisi = $jadwalsList->count();
+
+        return view('admin.jadwal.index', compact('mapels', 'kelasAktif', 'alokasis', 'jadwalsList', 'gurus', 'totalTargetJam', 'totalJadwalTerisi'));
     }
 
     /**
@@ -88,7 +87,7 @@ class JadwalPelajaranController extends Controller
     }
 
     /**
-     * Menyimpan sesi jadwal pelajaran manual per baris dengan validasi
+     * Menyimpan sesi jadwal pelajaran manual per baris dengan validasi ketat
      */
     public function store(Request $request)
     {
@@ -109,8 +108,15 @@ class JadwalPelajaranController extends Controller
         $mapel = Mapel::find($mapelId);
         $namaMapelLOWER = strtolower($mapel->nama_mapel);
 
-        // 1. VALIDASI BENTROK GURU KHUSUS (PAI / PJOK di kelas lain)
-        $isKhusus = str_contains($namaMapelLOWER, 'agama') || str_contains($namaMapelLOWER, 'pai') || str_contains($namaMapelLOWER, 'pjok');
+        // 1. VALIDASI HARI SENIN JAM KE-1 (KHUSUS UPACARA BENDERA)
+        if ($hari === 'Senin' && $jamKe == 1) {
+            if (!str_contains($namaMapelLOWER, 'upacara')) {
+                return back()->withInput()->with('error', 'Gagal Menyimpan! Hari Senin Jam ke-1 dialokasikan khusus untuk Upacara Bendera.');
+            }
+        }
+
+        // 2. VALIDASI BENTROK GURU KHUSUS (PAI / PJOK / Upacara di kelas lain)
+        $isKhusus = str_contains($namaMapelLOWER, 'agama') || str_contains($namaMapelLOWER, 'pai') || str_contains($namaMapelLOWER, 'pjok') || str_contains($namaMapelLOWER, 'upacara');
         if ($isKhusus) {
             $cekBentrok = JadwalPelajaran::where('kelas', '!=', $kelas)
                 ->where('hari', $hari)
@@ -119,11 +125,11 @@ class JadwalPelajaranController extends Controller
                 ->exists();
 
             if ($cekBentrok) {
-                return back()->withInput()->with('error', "Gagal Menyimpan! Guru {$mapel->nama_mapel} sudah mengajar di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
+                return back()->withInput()->with('error', "Gagal Menyimpan! Sesi {$mapel->nama_mapel} sudah dijadwalkan di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
             }
         }
 
-        // 2. VALIDASI APAKAH SLOT JAM TERSEBUT SUDAH TERISI DI KELAS INI
+        // 3. VALIDASI SLOT JAM TERISI DI KELAS INI
         $sudahTerisi = JadwalPelajaran::where('kelas', $kelas)
             ->where('hari', $hari)
             ->where('jam_ke', $jamKe)
@@ -133,13 +139,17 @@ class JadwalPelajaranController extends Controller
             return back()->withInput()->with('error', "Slot jam ke-{$jamKe} pada hari {$hari} di kelas ini sudah terisi mata pelajaran lain!");
         }
 
-        // 3. VALIDASI BATASAN ALOKASI WAKTU MINGGUAN
-        $currentCount = JadwalPelajaran::where('kelas', $kelas)->where('mapel_id', $mapelId)->count();
+        // 4. VALIDASI TARGET ALOKASI WAKTU MINGGUAN
         $alokasiTarget = AlokasiWaktu::where('kelas', $kelas)->where('mapel_id', $mapelId)->first();
         $maxJam = $alokasiTarget ? $alokasiTarget->jumlah_jam : 0;
 
-        if ($maxJam > 0 && $currentCount >= $maxJam) {
-            return back()->withInput()->with('error', "Gagal! Mata pelajaran '{$mapel->nama_mapel}' sudah mencapai batas alokasi target ({$maxJam} jam/minggu) untuk kelas ini.");
+        if ($maxJam <= 0) {
+            return back()->withInput()->with('error', "Gagal! Target alokasi waktu untuk mata pelajaran '{$mapel->nama_mapel}' belum diatur (0 Jam). Silakan atur target alokasi terlebih dahulu di Bagian 1.");
+        }
+
+        $currentCount = JadwalPelajaran::where('kelas', $kelas)->where('mapel_id', $mapelId)->count();
+        if ($currentCount >= $maxJam) {
+            return back()->withInput()->with('error', "Gagal! Mata pelajaran '{$mapel->nama_mapel}' sudah memenuhi batas alokasi target ({$maxJam} jam/minggu) untuk kelas ini.");
         }
 
         // Simpan sesi jadwal baru
@@ -175,15 +185,25 @@ class JadwalPelajaranController extends Controller
 
         // Ambil data alokasi waktu per mapel untuk kelas terpilih
         $alokasis = AlokasiWaktu::where('kelas', $kelasAktif)->get()->keyBy('mapel_id');
+        $totalTargetJam = $alokasis->sum('jumlah_jam');
 
         // Ambil data jadwal yang sudah tersimpan
-        $jadwals = JadwalPelajaran::where('kelas', $kelasAktif)->get()->groupBy(function ($item) {
+        $jadwalsList = JadwalPelajaran::where('kelas', $kelasAktif)->get();
+        $totalJadwalTerisi = $jadwalsList->count();
+
+        // Notifikasi peringatan jika jadwal terisi belum pas dengan total target
+        if ($totalTargetJam > 0 && $totalJadwalTerisi < $totalTargetJam) {
+            $kekurangan = $totalTargetJam - $totalJadwalTerisi;
+            session()->flash('warning', "Peringatan: Jumlah sesi jadwal terisi baru {$totalJadwalTerisi} jam dari target {$totalTargetJam} jam (kurang {$kekurangan} jam).");
+        }
+
+        $jadwals = $jadwalsList->groupBy(function ($item) {
             return $item->hari . '_' . $item->jam_ke;
         });
 
         // Ambil tahun ajaran yang sedang aktif di database
         $tahunAjaranAktif = TahunAjaran::getAktif();
 
-        return view('admin.jadwal.cetak', compact('mapels', 'kelasAktif', 'alokasis', 'jadwals', 'tahunAjaranAktif'));
+        return view('admin.jadwal.cetak', compact('mapels', 'kelasAktif', 'alokasis', 'jadwals', 'tahunAjaranAktif', 'totalTargetJam', 'totalJadwalTerisi'));
     }
 }
