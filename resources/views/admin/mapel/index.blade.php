@@ -4,7 +4,7 @@
 @section('page_title', 'Mata Pelajaran')
 
 @section('content')
-<div class="w-full bg-white text-slate-800 p-4 sm:p-6">
+<div class="w-full bg-white text-slate-800 p-4 sm:p-6 shadow-sm border border-slate-200">
     <div class="w-full space-y-6">
 
         <!-- Header Section -->

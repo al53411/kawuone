@@ -71,7 +71,8 @@
                         {{ Auth::user()->sekolah->nama_sekolah ?? $profilSekolah->nama_sekolah ?? 'Sistem Sekolah' }}
                     </span>
                 </div>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white focus:outline-none p-1">
+                <button onclick="toggleSidebar()"
+                    class="md:hidden text-slate-400 hover:text-white focus:outline-none p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -89,19 +90,20 @@
 
                 <!-- Dropdown Master Data -->
                 @php
-                $isAkademikActive = request()->routeIs(
-                    'admin.sekolah.*', 
-                    'admin.siswa.*', 
-                    'admin.guru.*',
-                    'admin.kelas.*', 
-                    'admin.tahun-ajaran.*'
-                );
+                    $isAkademikActive = request()->routeIs(
+                        'admin.sekolah.*',
+                        'admin.siswa.*',
+                        'admin.guru.*',
+                        'admin.kelas.*',
+                        'admin.tahun-ajaran.*'
+                    );
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-akademik', 'arrow-akademik')"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm hover:bg-slate-900 hover:text-white transition group focus:outline-none {{ $isAkademikActive ? 'text-white font-medium bg-slate-900/60' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-server w-5 text-center {{ $isAkademikActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-server w-5 text-center {{ $isAkademikActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span>Master Data</span>
                         </div>
                         <i id="arrow-akademik"
@@ -135,22 +137,23 @@
 
                 <!-- Dropdown Administrasi -->
                 @php
-                $isAdminActive = request()->routeIs(
-                    'admin.mapel.*',
-                    'admin.capaian-pembelajaran.*',
-                    'admin.tujuan-pembelajaran.*',
-                    'admin.atp.*',
-                    'admin.modul_ajar.*',
-                    'admin.absensi.*', 
-                    'admin.nilai.*',
-                    'admin.kepala-sekolah.jurnal.*'
-                );
+                    $isAdminActive = request()->routeIs(
+                        'admin.mapel.*',
+                        'admin.capaian-pembelajaran.*',
+                        'admin.tujuan-pembelajaran.*',
+                        'admin.atp.*',
+                        'admin.modul_ajar.*',
+                        'admin.absensi.*',
+                        'admin.nilai.*',
+                        'admin.kepala-sekolah.jurnal.*'
+                    );
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-administrasi', 'arrow-administrasi')"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm hover:bg-slate-900 hover:text-white transition group focus:outline-none {{ $isAdminActive ? 'text-white font-medium bg-slate-900/60' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-folder-open w-5 text-center {{ $isAdminActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-folder-open w-5 text-center {{ $isAdminActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span>Administrasi</span>
                         </div>
                         <i id="arrow-administrasi"
@@ -159,7 +162,7 @@
 
                     <div id="dropdown-administrasi"
                         class="{{ $isAdminActive ? '' : 'hidden' }} pl-9 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
-                        
+
                         <!-- Mata Pelajaran -->
                         <a href="{{ route('admin.mapel.index') }}"
                             class="block py-2 px-3 text-xs rounded-md transition {{ request()->routeIs('admin.mapel.*') ? 'text-blue-400 font-semibold bg-slate-800/60' : 'text-slate-400 hover:text-white' }}">
@@ -209,15 +212,53 @@
                     </div>
                 </div>
 
+                <!-- Dropdown Jadwal (MENU BARU: Kaldik & Jadwal Pelajaran) -->
+                @php
+                    $isJadwalActive = request()->routeIs(
+                        'admin.kaldik.*',
+                        'admin.jadwal.*'
+                    );
+                @endphp
+                <div class="space-y-1">
+                    <button onclick="toggleDropdown('dropdown-jadwal', 'arrow-jadwal')"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm hover:bg-slate-900 hover:text-white transition group focus:outline-none {{ $isJadwalActive ? 'text-white font-medium bg-slate-900/60' : '' }}">
+                        <div class="flex items-center space-x-3">
+                            <i
+                                class="fa-solid fa-calendar-alt w-5 text-center {{ $isJadwalActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <span>Jadwal</span>
+                        </div>
+                        <i id="arrow-jadwal"
+                            class="fa-solid fa-chevron-down text-xs text-slate-500 group-hover:text-white transition-transform duration-200 {{ $isJadwalActive ? 'rotate-180' : '' }}"></i>
+                    </button>
+
+                    <div id="dropdown-jadwal"
+                        class="{{ $isJadwalActive ? '' : 'hidden' }} pl-9 pr-2 py-1 space-y-1 bg-slate-900/40 rounded-lg">
+
+                        <!-- Kaldik (Kalender Pendidikan) -->
+                        <a href="{{ Route::has('admin.kaldik.index') ? route('admin.kaldik.index') : '#' }}"
+                            class="block py-2 px-3 text-xs rounded-md transition {{ request()->routeIs('admin.kaldik.*') ? 'text-blue-400 font-semibold bg-slate-800/60' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-calendar text-[10px] mr-2"></i> Kaldik
+                        </a>
+
+                        <!-- Jadwal Pelajaran -->
+                        <a href="{{ route('admin.jadwal.index') }}"
+                            class="block py-2 px-3 text-xs rounded-md transition {{ request()->routeIs('admin.jadwal.*') ? 'text-blue-400 font-semibold bg-slate-800/60' : 'text-slate-400 hover:text-white' }}">
+                            <i class="fa-solid fa-table-cells text-[10px] mr-2"></i> Jadwal Pelajaran
+                        </a>
+
+                    </div>
+                </div>
+
                 <!-- Dropdown Surat -->
                 @php
-                $isSuratActive = request()->routeIs('admin.surat-masuk.*', 'admin.surat-keluar.*');
+                    $isSuratActive = request()->routeIs('admin.surat-masuk.*', 'admin.surat-keluar.*');
                 @endphp
                 <div class="space-y-1">
                     <button onclick="toggleDropdown('dropdown-surat', 'arrow-surat')"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm hover:bg-slate-900 hover:text-white transition group focus:outline-none {{ $isSuratActive ? 'text-white font-medium bg-slate-900/60' : '' }}">
                         <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-envelope w-5 text-center {{ $isSuratActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
+                            <i
+                                class="fa-solid fa-envelope w-5 text-center {{ $isSuratActive ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-500' }} transition"></i>
                             <span>Arsip Surat</span>
                         </div>
                         <i id="arrow-surat"
@@ -261,7 +302,8 @@
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 
             <!-- Navbar Top -->
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0 shadow-sm">
+            <header
+                class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0 shadow-sm">
                 <div class="flex items-center space-x-3">
                     <button onclick="toggleSidebar()"
                         class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none md:hidden">
@@ -282,14 +324,16 @@
                     @endphp
 
                     @if($taAktif)
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
                             <i class="fa-solid fa-calendar-days mr-1.5 text-blue-500"></i>
                             <span class="hidden sm:inline">TP: </span>{{ $taAktif->tahun }} ({{ $taAktif->semester }})
                         </span>
                     @endif
 
                     <div class="flex items-center space-x-2 border-l border-slate-200 pl-2 sm:pl-3">
-                        <span class="text-xs sm:text-sm font-bold text-slate-700 hidden md:inline truncate max-w-[120px]">
+                        <span
+                            class="text-xs sm:text-sm font-bold text-slate-700 hidden md:inline truncate max-w-[120px]">
                             {{ Auth::user()->name ?? 'Administrator' }}
                         </span>
                         <div
@@ -309,62 +353,62 @@
     </div>
 
     <script>
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
 
-    // 1. Buka / Tutup Sidebar (Mobile)
-    function toggleSidebar() {
-        if (sidebar.classList.contains('-translate-x-full')) {
-            sidebar.classList.remove('-translate-x-full');
-            overlay.classList.remove('hidden');
-        } else {
-            sidebar.classList.add('-translate-x-full');
-            overlay.classList.add('hidden');
+        // 1. Buka / Tutup Sidebar (Mobile)
+        function toggleSidebar() {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
         }
-    }
 
-    // 2. Toggle Dropdown Menu Sidebar
-    function toggleDropdown(id, arrowId) {
-        const dropdown = document.getElementById(id);
-        const arrow = document.getElementById(arrowId);
+        // 2. Toggle Dropdown Menu Sidebar
+        function toggleDropdown(id, arrowId) {
+            const dropdown = document.getElementById(id);
+            const arrow = document.getElementById(arrowId);
 
-        if (dropdown.classList.contains('hidden')) {
-            dropdown.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
-        } else {
-            dropdown.classList.add('hidden');
-            arrow.classList.remove('rotate-180');
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                dropdown.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
         }
-    }
 
-    // 3. Resizing handler untuk responsivitas layar desktop
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 768) {
-            sidebar.classList.remove('-translate-x-full');
-            overlay.classList.add('hidden');
-        } else {
-            sidebar.classList.add('-translate-x-full');
-        }
-    });
+        // 3. Resizing handler untuk responsivitas layar desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.add('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
 
-    // 4. Alert Flash Notification (SweetAlert2)
-    @if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: @json(session('success')),
-        showConfirmButton: false,
-        timer: 2000
-    });
-    @endif
+        // 4. Alert Flash Notification (SweetAlert2)
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: @json(session('success')),
+                showConfirmButton: false,
+                timer: 2000
+            });
+        @endif
 
-    @if(session('error'))
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: @json(session('error'))
-    });
-    @endif
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: @json(session('error'))
+            });
+        @endif
     </script>
 </body>
 

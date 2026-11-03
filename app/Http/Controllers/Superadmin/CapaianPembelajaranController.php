@@ -7,6 +7,7 @@ use App\Models\CapaianPembelajaran;
 use App\Models\Mapel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 use Smalot\PdfParser\Parser;
 use PhpOffice\PhpWord\IOFactory;
 
@@ -29,30 +30,24 @@ class CapaianPembelajaranController extends Controller
 
         $allCps = $query->get();
 
-        // Urutan hirarki Elemen Agama Islam / Kurikulum Merdeka
         $elemenPriority = [
             "Al-Qur'an Hadis"           => 1,
             "Al-Qur'an dan Hadis"       => 1,
             "Akidah"                    => 2,
-            "Akhidak"                   => 2,
             "Akhlak"                    => 3,
             "Fikih"                     => 4,
             "Sejarah Peradaban Islam"   => 5,
             "SKI"                       => 5,
         ];
 
-        // Filter Aturan Khusus: SKI TIDAK BOLEH ADA DI FASE A & B
         $filteredCps = $allCps->reject(function ($item) {
             $fase = strtoupper($item->fase);
             $elemen = strtolower($item->elemen);
-
             $isSki = str_contains($elemen, 'sejarah') || str_contains($elemen, 'ski');
             return $isSki && in_array($fase, ['A', 'B']);
         });
 
-        // Grouping 2 Tingkat: [Fase][Mapel_ID] -> Collection of CP
         $cpsNested = $filteredCps->groupBy(['fase', 'mapel_id']);
-
         $faseOrder = ['A', 'B', 'C', 'D', 'E', 'F'];
         $cpsByFase = collect();
 
@@ -78,32 +73,32 @@ class CapaianPembelajaranController extends Controller
         return view('superadmin.capaian_pembelajaran.index', compact('cpsByFase', 'mapels', 'filterFase'));
     }
 
-    /**
-     * Memproses upload & ekstrak dokumen CP secara lokal (Bebas Error SSL/API)
-     */
-    public function importPdf(Request $request)
+    public function previewImport(Request $request)
     {
         $request->validate([
             'mapel_id'    => 'required|exists:mapels,id',
             'fase'        => 'nullable|string',
-            'file_berkas' => 'nullable|mimes:pdf,docx,doc|max:10240',
-            'file_pdf'    => 'nullable|mimes:pdf,docx,doc|max:10240',
+            'file_berkas' => 'nullable|mimes:pdf,docx,doc,jpg,jpeg,png|max:15240',
             'deskripsi'   => 'nullable|string',
-        ], [
-            'mapel_id.required' => 'Mata pelajaran wajib dipilih!',
         ]);
 
         $selectedFase = strtoupper(trim($request->input('fase', 'AUTO')));
-        $file = $request->file('file_berkas') ?? $request->file('file_pdf');
+        $file = $request->file('file_berkas');
+        $parsedData = [];
         $rawText = '';
 
-        // 1. EKSTRAKSI TEKS MENTAH MENGGUNAKAN PARSER LOKAL (PDF / WORD)
         if ($file) {
             $extension = strtolower($file->getClientOriginalExtension());
-            try {
-                if (in_array($extension, ['docx', 'doc'])) {
+
+            // 1. WAJIB: Gunakan Gemini AI untuk file PDF DAN Gambar agar teks tabel utuh dan tidak terpotong
+            if (in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'])) {
+                $parsedData = $this->parseWithGeminiVision($file, $selectedFase);
+            }
+            // 2. Jika file berupa Word (.docx)
+            elseif (in_array($extension, ['docx', 'doc'])) {
+                try {
                     if (class_exists('\PhpOffice\PhpWord\IOFactory')) {
-                        $phpWord = IOFactory::load($file->getPathname());
+                        $phpWord = \PhpOffice\PhpWord\IOFactory::load($file->getPathname());
                         $textBuffer = [];
                         foreach ($phpWord->getSections() as $section) {
                             foreach ($section->getElements() as $element) {
@@ -124,69 +119,181 @@ class CapaianPembelajaranController extends Controller
                         }
                         $rawText = implode("\n", $textBuffer);
                     }
-                } elseif ($extension === 'pdf') {
-                    if (class_exists('\Smalot\PdfParser\Parser')) {
-                        $parser = new Parser();
-                        $pdf = $parser->parseFile($file->getPathname());
-                        $rawText = $pdf->getText();
-                    }
+                } catch (\Exception $e) {
                 }
-            } catch (\Exception $e) {
-                // Ignore parsing errors
             }
         }
 
-        // Fallback ke textarea jika kosong
-        if (empty(trim($rawText)) && $request->filled('deskripsi')) {
+        // 3. Fallback ke textarea jika file tidak diunggah atau teks manual diisi
+        if (empty($parsedData) && empty(trim($rawText)) && $request->filled('deskripsi')) {
             $rawText = (string) $request->deskripsi;
         }
 
-        if (empty(trim($rawText))) {
-            return redirect()->back()->with('error', 'Teks dari berkas tidak terbaca. Silakan tempel teks CP secara manual.');
+        // 4. Jika menggunakan Word atau teks manual, jalankan parser lokal
+        if (empty($parsedData)) {
+            if (empty(trim($rawText))) {
+                return redirect()->route('superadmin.capaian-pembelajaran.index')
+                    ->with('error', 'Silakan unggah berkas PDF/Word atau tempel teks CP terlebih dahulu!');
+            }
+            $parsedData = $this->localRegexParser($rawText, $selectedFase);
         }
-
-        // 2. PARSING LOKAL BERDASARKAN KATA KUNCI ELEMEN
-        $parsedData = $this->localRegexParser($rawText, $selectedFase);
 
         if (empty($parsedData)) {
-            return redirect()->back()->with('error', 'Gagal mengekstrak data CP dari berkas.');
+            return redirect()->route('superadmin.capaian-pembelajaran.index')
+                ->with('error', 'Gagal mengekstrak data CP. Pastikan dokumen terbaca dengan jelas.');
         }
 
-        // 3. SIMPAN KE DATABASE
+        $mapel = Mapel::findOrFail($request->mapel_id);
+
+        return view('superadmin.capaian_pembelajaran.preview', compact('parsedData', 'mapel', 'selectedFase', 'rawText'));
+    }
+
+    /**
+     * Menyimpan data secara batch setelah disetujui di halaman preview (Anti Duplikat)
+     */
+    public function storeBatch(Request $request)
+    {
+        $request->validate([
+            'mapel_id'     => 'required|exists:mapels,id',
+            'fase'         => 'required|array',
+            'elemen'       => 'required|array',
+            'deskripsi_cp' => 'required|array',
+        ]);
+
+        $mapelId = $request->mapel_id;
+        $fases = $request->fase;
+        $elemens = $request->elemen;
+        $deskripsis = $request->deskripsi_cp;
+
         $savedCount = 0;
-        foreach ($parsedData as $item) {
-            if (!empty($item['elemen']) && !empty($item['deskripsi_cp'])) {
+        for ($i = 0; $i < count($elemens); $i++) {
+            if (!empty($elemens[$i]) && !empty($deskripsis[$i])) {
+                $faseFinal = $fases[$i] ?? 'C';
 
-                $faseFinal = ($selectedFase !== 'AUTO') ? $selectedFase : ($item['fase'] ?? 'C');
-
-                // Validasi Aturan SKI di Fase A & B
-                $isSki = str_contains(strtolower($item['elemen']), 'sejarah') || str_contains(strtolower($item['elemen']), 'ski');
+                $isSki = str_contains(strtolower($elemens[$i]), 'sejarah') || str_contains(strtolower($elemens[$i]), 'ski');
                 if ($isSki && in_array($faseFinal, ['A', 'B'])) {
                     continue;
                 }
 
-                CapaianPembelajaran::create([
-                    'mapel_id'     => $request->mapel_id,
-                    'fase'         => $faseFinal,
-                    'elemen'       => Str::limit($item['elemen'], 100, ''),
-                    'deskripsi_cp' => trim($item['deskripsi_cp']),
-                    'sekolah_id'   => null,
-                ]);
+                CapaianPembelajaran::updateOrCreate(
+                    [
+                        'mapel_id' => $mapelId,
+                        'fase'     => $faseFinal,
+                        'elemen'   => Str::limit($elemens[$i], 100, ''),
+                    ],
+                    [
+                        'deskripsi_cp' => trim($deskripsis[$i]),
+                        'sekolah_id'   => null,
+                    ]
+                );
                 $savedCount++;
             }
         }
 
-        return redirect()->back()->with('success', "Berhasil memproses dan menyimpan {$savedCount} Elemen CP ke database secara lokal!");
+        return redirect()->route('superadmin.capaian-pembelajaran.index')
+            ->with('success', "Berhasil menyimpan secara permanen {$savedCount} Elemen CP ke database tanpa duplikasi!");
+    }
+
+    public function update(Request $request, CapaianPembelajaran $capaianPembelajaran)
+    {
+        $validated = $request->validate([
+            'mapel_id'     => 'required|exists:mapels,id',
+            'fase'         => 'required|string|max:20',
+            'elemen'       => 'required|string|max:150',
+            'deskripsi_cp' => 'required|string',
+        ]);
+
+        $capaianPembelajaran->update($validated);
+
+        return redirect()->route('superadmin.capaian-pembelajaran.index')
+            ->with('success', 'Capaian Pembelajaran berhasil diperbarui!');
+    }
+
+    public function destroy(CapaianPembelajaran $capaianPembelajaran)
+    {
+        $capaianPembelajaran->delete();
+
+        return redirect()->route('superadmin.capaian-pembelajaran.index')
+            ->with('success', 'Capaian Pembelajaran berhasil dihapus!');
     }
 
     /**
-     * Parser Lokal Berbasis Keyword Elemen PAI & Umum
+     * Integrasi Gemini AI untuk membaca dokumen PDF / Gambar secara utuh & akurat
+     */
+    private function parseWithGeminiVision($file, string $selectedFase): array
+    {
+        try {
+            $mimeType = $file->getMimeType();
+            $fileData = base64_encode(file_get_contents($file->getPathname()));
+
+            $apiKey = env('GEMINI_API_KEY');
+            if (empty($apiKey)) {
+                return [];
+            }
+
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+
+            $faseInstruction = ($selectedFase === 'AUTO')
+                ? "Ekstrak seluruh data dari dokumen ini untuk SEMUA FASE yang ada (Fase A, Fase B, Fase C, dll.). Tentukan huruf fase (A, B, atau C) secara akurat untuk setiap baris elemen."
+                : "Fokuskan ekstraksi khusus untuk FASE {$selectedFase}. Pastikan kolom 'fase' bernilai '{$selectedFase}'.";
+
+            $prompt = "Anda adalah asisten AI kurikulum pendidikan Indonesia. 
+            Analisis dokumen Kurikulum Merdeka yang dilampirkan (PDF atau Gambar) secara menyeluruh. 
+            Ketentuan ekstraksi:
+            1. {$faseInstruction}
+            2. Ekstrak elemen-elemen resmi (contoh: Al-Qur'an Hadis, Akidah, Akhlak, Fikih, Sejarah Peradaban Islam / SPI).
+            3. Ambil deskripsi atau cakupan pembelajaran secara utuh dan lengkap dari tabel tanpa ada yang terpotong.
+            4. Hindari duplikasi data.
+            
+            Keluarkan hasil akhir HANYA dalam format JSON array murni tanpa backtick markdown, dengan struktur object:
+            [
+              {
+                \"fase\": \"A\",
+                \"elemen\": \"Nama Elemen\",
+                \"deskripsi_cp\": \"Isi deskripsi utuh lengkap...\"
+              }
+            ]";
+
+            $response = Http::post($url, [
+                "contents" => [
+                    [
+                        "parts" => [
+                            ["text" => $prompt],
+                            [
+                                "inline_data" => [
+                                    "mime_type" => $mimeType,
+                                    "data" => $fileData
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $resultText = $response->json('candidates.0.content.parts.0.text');
+                $cleanedJson = preg_replace('/```(?:json)?\s*([\s\S]*?)\s*```/', '$1', $resultText);
+                $parsedData = json_decode(trim($cleanedJson), true);
+
+                if (is_array($parsedData)) {
+                    return $parsedData;
+                }
+            }
+        } catch (\Exception $e) {
+        }
+
+        return [];
+    }
+
+    /**
+     * Parser Lokal Pintar (Membaca Teks Secara Offline & Mengurai Blok FASE Dokumen Resmi)
      */
     private function localRegexParser(string $text, string $selectedFase): array
     {
-        $cleanText = preg_replace('/\s+/', ' ', trim($text));
+        $cleanText = preg_replace('/[ \t\r\n]+/u', ' ', trim($text));
 
         $elemenList = [
+            "Al-Qur'an dan Hadis",
             "Al-Qur'an Hadis",
             "Akidah",
             "Akhlak",
@@ -195,40 +302,126 @@ class CapaianPembelajaranController extends Controller
             "SKI"
         ];
 
-        $faseTarget = ($selectedFase !== 'AUTO') ? $selectedFase : 'C';
         $results = [];
 
-        $pattern = '/(' . implode('|', array_map('preg_quote', $elemenList)) . ')/i';
-        $parts = preg_split($pattern, $cleanText, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        // 1. Coba Identifikasi Blok Berdasarkan "FASE A", "FASE B", dst.
+        preg_match_all('/FASE\s+([A-F])\s*\(([^)]+)\)(.*?)(?=(FASE\s+[A-F]|$))/ui', $cleanText, $faseBlocks, PREG_SET_ORDER);
 
-        if (is_array($parts) && count($parts) >= 2) {
-            for ($i = 0; $i < count($parts); $i++) {
-                $candidate = trim($parts[$i]);
-                foreach ($elemenList as $el) {
-                    if (strcasecmp($candidate, $el) === 0) {
-                        $isiCp = trim($parts[$i + 1] ?? '');
-                        $isiCp = preg_replace('/^[\s\:\-\.]+/i', '', $isiCp);
+        if (!empty($faseBlocks)) {
+            foreach ($faseBlocks as $block) {
+                $faseHuruf = strtoupper(trim($block[1]));
+                $faseContent = $block[3];
 
-                        if (!empty($isiCp)) {
-                            $results[] = [
-                                'fase'         => $faseTarget,
-                                'elemen'       => $el,
-                                'deskripsi_cp' => $isiCp
-                            ];
+                if ($selectedFase !== 'AUTO' && $faseHuruf !== $selectedFase) {
+                    continue;
+                }
+
+                $sortedElemen = $elemenList;
+                usort($sortedElemen, function ($a, $b) {
+                    return strlen($b) - strlen($a);
+                });
+
+                foreach ($sortedElemen as $el) {
+                    $pos = stripos($faseContent, $el);
+                    if ($pos !== false) {
+                        $startPos = $pos + strlen($el);
+
+                        $nextPos = PHP_INT_MAX;
+                        foreach ($sortedElemen as $subEl) {
+                            $p = stripos($faseContent, $subEl, $startPos);
+                            if ($p !== false && $p < $nextPos) {
+                                $nextPos = $p;
+                            }
                         }
-                        break;
+
+                        $subText = ($nextPos !== PHP_INT_MAX)
+                            ? substr($faseContent, $startPos, $nextPos - $startPos)
+                            : substr($faseContent, $startPos);
+
+                        $isiCp = preg_replace('/^[\s\:\-\.]+/u', '', trim($subText));
+
+                        if (!empty($isiCp) && strlen($isiCp) > 10) {
+                            $normalizedElemen = $el;
+                            if (strtolower($el) === "al-qur'an hadis") {
+                                $normalizedElemen = "Al-Qur'an dan Hadis";
+                            }
+
+                            $exists = collect($results)->contains(function ($item) use ($faseHuruf, $normalizedElemen) {
+                                return $item['fase'] === $faseHuruf && $item['elemen'] === $normalizedElemen;
+                            });
+
+                            if (!$exists) {
+                                $results[] = [
+                                    'fase'         => $faseHuruf,
+                                    'elemen'       => $normalizedElemen,
+                                    'deskripsi_cp' => $isiCp
+                                ];
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Jika tidak terdeteksi lewat keyword, masukkan sebagai teks utama
+        // 2. Jika tidak ada blok FASE (Misal paste teks berantakan), gunakan pencarian urut linear
         if (empty($results)) {
-            $results[] = [
-                'fase'         => $faseTarget,
-                'elemen'       => 'Al-Qur\'an Hadis',
-                'deskripsi_cp' => $cleanText
-            ];
+            $faseTarget = ($selectedFase !== 'AUTO') ? $selectedFase : 'C';
+            if ($selectedFase === 'AUTO') {
+                if (preg_match('/fase\s*([a-f])/i', $cleanText, $match)) {
+                    $faseTarget = strtoupper($match[1]);
+                }
+            }
+
+            $sortedElemen = $elemenList;
+            usort($sortedElemen, function ($a, $b) {
+                return strlen($b) - strlen($a);
+            });
+
+            $foundElements = [];
+            foreach ($sortedElemen as $el) {
+                $pos = stripos($cleanText, $el);
+                if ($pos !== false) {
+                    $exists = collect($foundElements)->contains(function ($item) use ($pos) {
+                        return abs($item['pos'] - $pos) < 5;
+                    });
+
+                    if (!$exists) {
+                        $foundElements[] = ['elemen' => $el, 'pos' => $pos];
+                    }
+                }
+            }
+
+            usort($foundElements, function ($a, $b) {
+                return $a['pos'] - $b['pos'];
+            });
+
+            for ($i = 0; $i < count($foundElements); $i++) {
+                $current = $foundElements[$i];
+                $currentElemenName = $current['elemen'];
+                $startPos = $current['pos'] + strlen($currentElemenName);
+
+                if (isset($foundElements[$i + 1])) {
+                    $endPos = $foundElements[$i + 1]['pos'];
+                    $subText = substr($cleanText, $startPos, $endPos - $startPos);
+                } else {
+                    $subText = substr($cleanText, $startPos);
+                }
+
+                $isiCp = preg_replace('/^[\s\:\-\.]+/u', '', trim($subText));
+
+                if (!empty($isiCp)) {
+                    $normalizedElemen = $currentElemenName;
+                    if (strtolower($currentElemenName) === "al-qur'an hadis") {
+                        $normalizedElemen = "Al-Qur'an dan Hadis";
+                    }
+
+                    $results[] = [
+                        'fase'         => $faseTarget,
+                        'elemen'       => $normalizedElemen,
+                        'deskripsi_cp' => $isiCp
+                    ];
+                }
+            }
         }
 
         return $results;

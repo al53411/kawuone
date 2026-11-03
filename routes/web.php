@@ -7,6 +7,7 @@ use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardCo
 use App\Http\Controllers\Superadmin\SekolahController as SuperadminSekolahController;
 use App\Http\Controllers\Superadmin\UserController;
 use App\Http\Controllers\Superadmin\KepsekController;
+use App\Http\Controllers\Superadmin\CapaianPembelajaranController as SuperadminCapaianPembelajaranController;
 
 // Import Controller Admin Sekolah
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\TujuanPembelajaranController;
 use App\Http\Controllers\Admin\AlurTujuanPembelajaranController;
 use App\Http\Controllers\Admin\ModulAjarController;
+use App\Http\Controllers\Admin\JadwalPelajaranController;
 
 // Import Controller Guru
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
@@ -59,11 +61,11 @@ Route::get('/dashboard', function () {
 
     if ($role === 'superadmin') {
         return redirect()->route('superadmin.dashboard');
-    } 
+    }
 
     if (in_array($role, ['admin', 'admin_sekolah', 'kepsek'], true)) {
         return redirect()->route('admin.dashboard');
-    } 
+    }
 
     if ($role === 'guru') {
         return redirect()->route('guru.dashboard');
@@ -91,9 +93,16 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     // CRUD Management Account User oleh Superadmin
     Route::resource('users', UserController::class);
 
-    // Route Upload & Import PDF CP
-    Route::get('/capaian-pembelajaran', [\App\Http\Controllers\Superadmin\CapaianPembelajaranController::class, 'index'])->name('capaian-pembelajaran.index');
-    Route::post('/capaian-pembelajaran/import-pdf', [\App\Http\Controllers\Superadmin\CapaianPembelajaranController::class, 'importPdf'])->name('capaian-pembelajaran.import-pdf');
+    // Route Capaian Pembelajaran Superadmin (Menggunakan Controller Superadmin yang benar)
+    Route::get('/capaian-pembelajaran', [SuperadminCapaianPembelajaranController::class, 'index'])->name('capaian-pembelajaran.index');
+    Route::post('/capaian-pembelajaran', [SuperadminCapaianPembelajaranController::class, 'store'])->name('capaian-pembelajaran.store');
+    Route::post('/capaian-pembelajaran/import', [SuperadminCapaianPembelajaranController::class, 'importPdf'])->name('capaian-pembelajaran.import-pdf');
+    Route::put('/capaian-pembelajaran/{capaianPembelajaran}', [SuperadminCapaianPembelajaranController::class, 'update'])->name('capaian-pembelajaran.update');
+    Route::delete('/capaian-pembelajaran/{capaianPembelajaran}', [SuperadminCapaianPembelajaranController::class, 'destroy'])->name('capaian-pembelajaran.destroy');
+
+    // Perbaikan: Menggunakan SuperadminCapaianPembelajaranController
+    Route::post('/capaian-pembelajaran/preview', [SuperadminCapaianPembelajaranController::class, 'previewImport'])->name('capaian-pembelajaran.preview');
+    Route::post('/capaian-pembelajaran/store-batch', [SuperadminCapaianPembelajaranController::class, 'storeBatch'])->name('capaian-pembelajaran.store-batch');
 });
 
 
@@ -154,8 +163,19 @@ Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,superadmin,guru'])->
 
     // Route Modul Ajar Admin
     Route::resource('modul_ajar', ModulAjarController::class);
-
 });
+
+Route::middleware(['auth', 'role:admin,admin_sekolah,kepsek,kepala-sekolah,superadmin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/jadwal-pelajaran', [JadwalPelajaranController::class, 'index'])->name('jadwal.index');
+    Route::post('/jadwal-pelajaran/alokasi', [JadwalPelajaranController::class, 'saveAlokasi'])->name('jadwal.alokasi');
+    Route::post('/jadwal-pelajaran/alokasi-massal', [JadwalPelajaranController::class, 'saveAlokasiMassal'])->name('jadwal.alokasi-massal');
+    Route::post('/jadwal-pelajaran/store', [JadwalPelajaranController::class, 'store'])->name('jadwal.store');
+
+    // ➡️ Tambahkan rute hapus (destroy) ini jika belum ada:
+    Route::delete('/jadwal-pelajaran/{id}', [JadwalPelajaranController::class, 'destroy'])->name('jadwal.destroy');
+
+    Route::get('/jadwal-pelajaran/cetak', [JadwalPelajaranController::class, 'cetak'])->name('jadwal.cetak');
+});;
 
 
 // ==========================================
@@ -180,20 +200,19 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
 
     // Siswa khusus modul Guru
     Route::resource('siswa', GuruSiswaController::class)->only(['index', 'show']);
-    
+
     // Kelas Guru
     Route::get('/kelas', [GuruSiswaController::class, 'kelasIndex'])->name('kelas.index');
     Route::get('/kelas/{id}', [GuruSiswaController::class, 'kelasShow'])->name('kelas.show');
 
-    // Modul Ajar Guru (Pindahkan rute kustom ke ATAS resource)
+    // Modul Ajar Guru
     Route::get('/get-cp-filtered', [GuruModulAjarController::class, 'getCpFiltered'])->name('get_cp_filtered');
     Route::get('/get-tp-by-cp/{cp_id}', [GuruModulAjarController::class, 'getTpByCp'])->name('get_tp_by_cp');
     Route::get('/get-tp-filtered', [GuruModulAjarController::class, 'getTpFiltered'])->name('get_tp_filtered');
     Route::get('/modul-ajar/{id}/print', [GuruModulAjarController::class, 'print'])->name('modul_ajar.print');
 
-    // Route Resource diletakkan di bawah rute kustom
     Route::resource('modul_ajar', GuruModulAjarController::class);
-   
+
     // Cetak Rekap Jurnal
     Route::get('/jurnal/cetak-pdf', [GuruJurnalController::class, 'cetakWord'])->name('jurnal.cetak');
     Route::resource('jurnal', GuruJurnalController::class);
@@ -210,11 +229,10 @@ Route::middleware(['auth', 'role:guru,superadmin'])->prefix('guru')->name('guru.
     Route::post('/absensi-mapel', [AbsensiMapelController::class, 'store'])->name('absensi-mapel.store');
     Route::get('/absensi-mapel/rekap', [AbsensiMapelController::class, 'rekap'])->name('absensi-mapel.rekap');
     Route::get('/absensi-mapel/cetak', [AbsensiMapelController::class, 'cetakRekap'])->name('absensi-mapel.cetak');
-
 });
 
 // ==========================================
-// PROFILE MANAGEMENT (DEFAULT BREEZE/JETSTREAM)
+// PROFILE MANAGEMENT
 // ==========================================
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -222,7 +240,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 
 // ==========================================
