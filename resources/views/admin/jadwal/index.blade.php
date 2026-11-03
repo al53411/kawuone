@@ -6,6 +6,50 @@
 @section('content')
     <div class="space-y-6">
 
+        <!-- ALERT NOTIFIKASI SUKSES / ERROR / WARNING -->
+        @if(session('success'))
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-circle-check text-emerald-600 text-lg mr-3"></i>
+                    <p class="text-xs font-bold text-emerald-800">{{ session('success') }}</p>
+                </div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg mr-3"></i>
+                    <p class="text-xs font-bold text-rose-800">{{ session('error') }}</p>
+                </div>
+            </div>
+        @endif
+
+        @if(session('warning'))
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-circle-exclamation text-amber-600 text-lg mr-3"></i>
+                    <p class="text-xs font-bold text-amber-800">{{ session('warning') }}</p>
+                </div>
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex items-start">
+                    <i class="fa-solid fa-circle-exclamation text-amber-600 text-lg mr-3 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-bold text-amber-800">Perhatikan kesalahan input berikut:</p>
+                        <ul class="list-disc list-inside text-xs text-amber-700 mt-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Header & Aksi Preview / Cetak & Filter Kelas -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 flat-card shadow-sm">
             <div class="flex items-center space-x-3">
@@ -16,8 +60,7 @@
                 </a>
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">Pengaturan Jadwal Pelajaran</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Kelola alokasi waktu dan input sesi jadwal per kelas secara
-                        manual.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Kelola alokasi waktu dan input sesi jadwal per kelas secara manual.</p>
                 </div>
             </div>
             <div>
@@ -35,31 +78,31 @@
 
         <!-- 1. BAGIAN ALOKASI WAKTU PER MINGGU -->
         <div class="bg-white flat-card shadow-sm p-5 mb-6">
-            <div
-                class="border-b border-slate-200 pb-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="border-b border-slate-200 pb-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h3 class="text-sm font-bold text-slate-800 flex items-center">
-                        <i class="fa-solid fa-clock text-blue-600 mr-2"></i> 1. Target Alokasi Waktu per Minggu
-                        ({{ $kelasAktif }})
+                        <i class="fa-solid fa-clock text-blue-600 mr-2"></i> 1. Target Alokasi Waktu per Minggu ({{ $kelasAktif }})
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Tentukan jumlah jam pelajaran untuk setiap mata pelajaran dalam
-                        seminggu.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Tentukan jumlah jam pelajaran untuk setiap mata pelajaran dalam seminggu.</p>
                 </div>
 
-                <!-- Indikator Total Jam Otomatis -->
+                <!-- Indikator & Target Total Jam Dinamis -->
                 <div class="flex items-center space-x-3 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
                     <div class="text-right">
-                        <span class="block text-[10px] uppercase font-bold text-blue-600 tracking-wider">Total Alokasi
-                            Minggu Ini</span>
+                        <span class="block text-[10px] uppercase font-bold text-blue-600 tracking-wider">Total Alokasi Saat Ini</span>
                         <span id="total-jam-badge" class="text-base font-extrabold text-blue-800">0 Jam</span>
                     </div>
                     <div class="h-8 w-px bg-blue-200"></div>
-                    <span class="text-[11px] text-blue-600 font-medium">Target Normal: <strong class="text-blue-900">40
-                            Jam</strong></span>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-[11px] text-blue-600 font-medium">Target Jam:</span>
+                        <input type="number" id="target-total-jam" value="{{ $totalTargetJam > 0 ? $totalTargetJam : 40 }}" min="1" max="60"
+                            class="w-14 text-center text-xs font-extrabold text-blue-900 bg-white border border-blue-300 rounded py-0.5 px-1 focus:ring-1 focus:ring-blue-500">
+                        <span class="text-[11px] text-blue-600 font-medium">Jam</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Form Pintasan Alokasi Massal (Kecuali PAI & PJOK) -->
+            <!-- Form Pintasan Alokasi Massal -->
             <form action="{{ route('admin.jadwal.alokasi-massal') }}" method="POST"
                 class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
                 @csrf
@@ -78,6 +121,7 @@
                 </button>
             </form>
 
+            <!-- Form Utama Alokasi Waktu -->
             <form action="{{ route('admin.jadwal.alokasi') }}" method="POST" id="form-alokasi">
                 @csrf
                 <input type="hidden" name="kelas" value="{{ $kelasAktif }}">
@@ -86,19 +130,16 @@
                     @foreach($mapels as $mapel)
                         @php
                             $namaLOWER = strtolower($mapel->nama_mapel);
-                            $isKhusus = str_contains($namaLOWER, 'agama') || str_contains($namaLOWER, 'pai') || str_contains($namaLOWER, 'pjok') || str_contains($namaLOWER, 'olahraga');
+                            $isKhusus = str_contains($namaLOWER, 'agama') || str_contains($namaLOWER, 'pai') || str_contains($namaLOWER, 'pjok') || str_contains($namaLOWER, 'olahraga') || str_contains($namaLOWER, 'upacara');
                         @endphp
-                        <div
-                            class="bg-slate-50 border {{ $isKhusus ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200' }} p-3 rounded-lg">
-                            <label
-                                class="block text-[11px] font-bold {{ $isKhusus ? 'text-amber-800' : 'text-slate-700' }} truncate mb-1"
+                        <div class="bg-slate-50 border {{ $isKhusus ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200' }} p-3 rounded-lg">
+                            <label class="block text-[11px] font-bold {{ $isKhusus ? 'text-amber-800' : 'text-slate-700' }} truncate mb-1"
                                 title="{{ $mapel->nama_mapel }}">
-                                {{ $mapel->nama_mapel }} @if($isKhusus) <span
-                                class="text-[9px] text-amber-600 font-normal">(Khusus)</span> @endif
+                                {{ $mapel->nama_mapel }} @if($isKhusus) <span class="text-[9px] text-amber-600 font-normal">(Khusus)</span> @endif
                             </label>
                             <div class="flex items-center space-x-1">
                                 <input type="number" name="alokasi[{{ $mapel->id }}]"
-                                    value="{{ $alokasis[$mapel->id]->jumlah_jam ?? 0 }}" min="0"
+                                    value="{{ $alokasis[$mapel->id]->jumlah_jam ?? 0 }}" min="0" max="40"
                                     class="flat-input w-full text-center py-1.5 font-semibold text-blue-600 input-alokasi-jam"
                                     required>
                                 <span class="text-[11px] text-slate-500 shrink-0">Jam</span>
@@ -107,26 +148,20 @@
                     @endforeach
                 </div>
 
-                <!-- Indikator & Target Total Jam Dinamis -->
-                <div class="flex items-center space-x-3 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg">
-                    <div class="text-right">
-                        <span class="block text-[10px] uppercase font-bold text-blue-600 tracking-wider">Total Alokasi
-                            Minggu Ini</span>
-                        <span id="total-jam-badge" class="text-base font-extrabold text-blue-800">0 Jam</span>
-                    </div>
-                    <div class="h-8 w-px bg-blue-200"></div>
-                    <div class="flex items-center space-x-1">
-                        <span class="text-[11px] text-blue-600 font-medium">Target Jam:</span>
-                        <!-- Input dinamis untuk menentukan target total jam per minggu -->
-                        <input type="number" id="target-total-jam" value="40" min="1" max="60"
-                            class="w-14 text-center text-xs font-extrabold text-blue-900 bg-white border border-blue-300 rounded py-0.5 px-1 focus:ring-1 focus:ring-blue-500">
-                        <span class="text-[11px] text-blue-600 font-medium">Jam</span>
-                    </div>
+                <div class="flex items-center justify-between">
+                    <p id="warning-total" class="text-xs font-medium text-rose-600 hidden">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Peringatan: Total jam belum mencapai target!
+                    </p>
+                    <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-2 ml-auto">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Simpan Perubahan Alokasi</span>
+                    </button>
                 </div>
             </form>
         </div>
 
-        <!-- Script JavaScript untuk Menghitung Total Jam Secara Real-Time -->
+        <!-- Script Real-Time Total Jam -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const inputJamList = document.querySelectorAll('.input-alokasi-jam');
@@ -141,18 +176,16 @@
                         total += val;
                     });
 
-                    // Ambil target dinamis dari input
                     let targetNormal = parseInt(inputTargetTotal.value) || 40;
-
                     badgeTotal.textContent = total + ' Jam';
 
                     if (total !== targetNormal) {
                         badgeTotal.className = 'text-base font-extrabold text-amber-600';
                         warningTotal.classList.remove('hidden');
                         if (total < targetNormal) {
-                            warningTotal.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Total saat ini ${total} Jam (Kurang ${targetNormal - total} jam dari target ${targetNormal} jam).`;
+                            warningTotal.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Total alokasi saat ini ${total} Jam (Kurang ${targetNormal - total} jam dari target ${targetNormal} jam).`;
                         } else {
-                            warningTotal.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Total saat ini ${total} Jam (Lebih ${total - targetNormal} jam dari target ${targetNormal} jam).`;
+                            warningTotal.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Total alokasi saat ini ${total} Jam (Lebih ${total - targetNormal} jam dari target ${targetNormal} jam).`;
                         }
                     } else {
                         badgeTotal.className = 'text-base font-extrabold text-emerald-600';
@@ -160,10 +193,8 @@
                     }
                 }
 
-                // Jalankan saat halaman dimuat
                 hitungTotalJam();
 
-                // Jalankan setiap kali input alokasi atau target total diubah
                 inputJamList.forEach(input => {
                     input.addEventListener('input', hitungTotalJam);
                 });
@@ -176,12 +207,16 @@
 
         <!-- 2. BAGIAN INPUT MANUAL SESI JADWAL -->
         <div class="bg-white flat-card shadow-sm p-5">
-            <div class="border-b border-slate-200 pb-3 mb-4">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center">
-                    <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i> 2. Tambah Sesi Jadwal Pelajaran
-                    ({{ $kelasAktif }})
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">Masukkan sesi jadwal per jam dan hari secara fleksibel.</p>
+            <div class="border-b border-slate-200 pb-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i> 2. Tambah Sesi Jadwal Pelajaran ({{ $kelasAktif }})
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Masukkan sesi jadwal per jam dan hari secara fleksibel.</p>
+                </div>
+                <div class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700">
+                    Sesi Terisi: <span class="text-emerald-700 font-bold">{{ $totalJadwalTerisi ?? 0 }}</span> / Target: <span class="text-blue-700 font-bold">{{ $totalTargetJam ?? 0 }} Jam</span>
+                </div>
             </div>
 
             <form action="{{ route('admin.jadwal.store') }}" method="POST"
@@ -189,7 +224,6 @@
                 @csrf
                 <input type="hidden" name="kelas" value="{{ $kelasAktif }}">
 
-                <!-- Ubah dari input text menjadi dropdown guru / wali kelas -->
                 <!-- Dropdown Guru / Wali Kelas -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Wali Kelas / Guru:</label>
@@ -199,7 +233,6 @@
                         <option value="" class="text-slate-500">-- Pilih Guru / Wali Kelas --</option>
                         @foreach($gurus ?? [] as $guru)
                             @php 
-                                                                                                                                // Menyesuaikan dengan kolom nama di database Anda
                                 $namaGuru = $guru->nama_lengkap ?? $guru->nama ?? $guru->name ?? '-'; 
                             @endphp
                             <option value="{{ $namaGuru }}" class="text-slate-900 bg-white">{{ $namaGuru }}</option>
@@ -289,8 +322,7 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="border border-slate-200 py-6 text-center text-slate-400 italic">
-                                    Belum ada sesi jadwal yang diinput untuk kelas ini. Silakan gunakan form di atas untuk
-                                    menambahkan.
+                                    Belum ada sesi jadwal yang diinput untuk kelas ini. Silakan gunakan form di atas untuk menambahkan.
                                 </td>
                             </tr>
                         @endforelse

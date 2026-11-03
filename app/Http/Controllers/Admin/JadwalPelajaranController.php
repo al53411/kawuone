@@ -115,18 +115,38 @@ class JadwalPelajaranController extends Controller
             }
         }
 
-        // 2. VALIDASI BENTROK GURU KHUSUS (PAI / PJOK / Upacara di kelas lain)
-        $isKhusus = str_contains($namaMapelLOWER, 'agama') || str_contains($namaMapelLOWER, 'pai') || str_contains($namaMapelLOWER, 'pjok') || str_contains($namaMapelLOWER, 'upacara');
-        if ($isKhusus) {
-            $cekBentrok = JadwalPelajaran::where('kelas', '!=', $kelas)
+        // 2. VALIDASI BENTROK MAPEL KHUSUS (PAI & PJOK) DI SELURUH KELAS
+        $isPAI  = str_contains($namaMapelLOWER, 'agama') || str_contains($namaMapelLOWER, 'pai');
+        $isPJOK = str_contains($namaMapelLOWER, 'pjok') || str_contains($namaMapelLOWER, 'olahraga');
+
+        if ($isPAI || $isPJOK) {
+            $cekBentrokKhusus = JadwalPelajaran::where('kelas', '!=', $kelas)
                 ->where('hari', $hari)
                 ->where('jam_ke', $jamKe)
-                ->where('mapel_id', $mapelId)
+                ->whereHas('mapel', function ($query) use ($isPAI) {
+                    if ($isPAI) {
+                        $query->whereRaw("LOWER(nama_mapel) LIKE '%agama%' OR LOWER(nama_mapel) LIKE '%pai%'");
+                    } else {
+                        $query->whereRaw("LOWER(nama_mapel) LIKE '%pjok%' OR LOWER(nama_mapel) LIKE '%olahraga%'");
+                    }
+                })
                 ->exists();
 
-            if ($cekBentrok) {
-                return back()->withInput()->with('error', "Gagal Menyimpan! Sesi {$mapel->nama_mapel} sudah dijadwalkan di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
+            if ($cekBentrokKhusus) {
+                $kategori = $isPAI ? 'Agama / PAI' : 'PJOK / Olahraga';
+                return back()->withInput()->with('error', "Gagal Menyimpan! Mata pelajaran {$kategori} sudah dijadwalkan di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
             }
+        }
+
+        // 3. VALIDASI BENTROK GURU/WALI KELAS YANG SAMA DI DUA KELAS BERBEDA
+        $cekBentrokGuru = JadwalPelajaran::where('kelas', '!=', $kelas)
+            ->where('hari', $hari)
+            ->where('jam_ke', $jamKe)
+            ->where('wali_kelas', $waliKelas)
+            ->exists();
+
+        if ($cekBentrokGuru) {
+            return back()->withInput()->with('error', "Gagal Menyimpan! Guru '{$waliKelas}' sudah mengajar di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
         }
 
         // 3. VALIDASI SLOT JAM TERISI DI KELAS INI
