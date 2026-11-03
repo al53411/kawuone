@@ -182,7 +182,7 @@ class JadwalPelajaranController extends Controller
         });
 
         // Ambil tahun ajaran yang sedang aktif di database
-        $tahunAjaranAktif = TahunAjaran::where('is_aktif', true)->first();
+        $tahunAjaranAktif = TahunAjaran::getAktif();
 
         return view('admin.jadwal.cetak', compact('mapels', 'kelasAktif', 'alokasis', 'jadwals', 'tahunAjaranAktif'));
     }
