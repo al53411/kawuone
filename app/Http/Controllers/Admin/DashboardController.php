@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Siswa;
 use App\Models\Guru;
 use App\Models\Kelas;
+use App\Models\Mapel; // 1. Import Model Mapel
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -20,6 +21,7 @@ class DashboardController extends Controller
         $siswaQuery = Siswa::query();
         $guruQuery  = Guru::query();
         $kelasQuery = Kelas::query();
+        $mapelQuery = Mapel::query(); // 2. Inisialisasi Query Mapel
         $logQuery   = class_exists(ActivityLog::class) ? ActivityLog::query() : null;
 
         // Hanya tambahkan filter sekolah_id jika user punya sekolah_id DAN kolomnya memang ada di tabel
@@ -27,7 +29,7 @@ class DashboardController extends Controller
             if (Schema::hasColumn('siswas', 'sekolah_id')) {
                 $siswaQuery->where('sekolah_id', $sekolahId);
             }
-            
+
             if (Schema::hasColumn('gurus', 'sekolah_id')) {
                 $guruQuery->where('sekolah_id', $sekolahId);
             }
@@ -36,15 +38,20 @@ class DashboardController extends Controller
                 $kelasQuery->where('sekolah_id', $sekolahId);
             }
 
+            if (Schema::hasColumn('mapels', 'sekolah_id')) { // 3. Filter sekolah_id untuk tabel mapels
+                $mapelQuery->where('sekolah_id', $sekolahId);
+            }
+
             if ($logQuery && Schema::hasColumn('activity_logs', 'sekolah_id')) {
                 $logQuery->where('sekolah_id', $sekolahId);
             }
         }
 
-            return view('admin.dashboard.index', [
+        return view('admin.dashboard.index', [
             'total_siswa' => $siswaQuery->count(),
             'total_guru'  => $guruQuery->count(),
             'total_kelas' => $kelasQuery->count(),
+            'total_mapel' => $mapelQuery->count(), // 4. Mengirim variabel total_mapel ke view
             'aktivitas'   => $logQuery ? $logQuery->latest()->take(5)->get() : collect(),
         ]);
     }
