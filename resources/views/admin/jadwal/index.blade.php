@@ -147,10 +147,6 @@
                         class="flat-input w-16 text-center py-1 font-semibold text-slate-700" required>
                     <span class="text-xs text-slate-500">Jam/minggu (Kecuali Agama, Olahraga, & Kegiatan Rutin)</span>
                 </div>
-                <button type="submit"
-                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded transition">
-                    Terapkan Massal
-                </button>
             </form>
 
             <!-- Form Utama Alokasi Waktu -->
