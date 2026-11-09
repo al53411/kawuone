@@ -60,11 +60,14 @@ class MapelController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // Validasi Unik: Nama mapel tidak boleh sama dalam satu sekolah yang sama
+                // Validasi Unik: Nama mapel tidak boleh sama dalam satu sekolah yang sama (Aman untuk null)
                 Rule::unique('mapels')->where(function ($query) use ($sekolahId) {
-                    return $query->where('sekolah_id', $sekolahId);
+                    return $sekolahId 
+                        ? $query->where('sekolah_id', $sekolahId) 
+                        : $query->whereNull('sekolah_id');
                 }),
             ],
+            'kategori'   => 'nullable|string|in:kbm,rutin,ekstra', // Opsi jika tabel mapels punya kolom kategori
             'kelas_ids'  => 'nullable|array',
             'kelas_ids.*'=> 'exists:kelas,id',
         ], [
@@ -75,7 +78,11 @@ class MapelController extends Controller
         // ---------------------------------------------------------
         // LOGIKA GENERATE KODE MAPEL OTOMATIS (Contoh: MPL-001)
         // ---------------------------------------------------------
-        $latestMapel = Mapel::where('sekolah_id', $sekolahId)
+        $latestMapel = Mapel::when($sekolahId, function($q) use ($sekolahId) {
+                                return $q->where('sekolah_id', $sekolahId);
+                            }, function($q) {
+                                return $q->whereNull('sekolah_id');
+                            })
                             ->where('kode_mapel', 'like', 'MPL-%')
                             ->orderBy('id', 'desc')
                             ->first();
@@ -89,12 +96,20 @@ class MapelController extends Controller
 
         $kodeOtomatis = 'MPL-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
 
-        // Simpan Master Mapel
-        $mapel = Mapel::create([
+        // Data payload yang akan disimpan
+        $payload = [
             'sekolah_id' => $sekolahId,
             'kode_mapel' => $kodeOtomatis,
             'nama_mapel' => $request->nama_mapel,
-        ]);
+        ];
+
+        // Jika di database ada kolom 'kategori' dan di-request
+        if ($request->has('kategori') && Schema::hasColumn('mapels', 'kategori')) {
+            $payload['kategori'] = $request->kategori;
+        }
+
+        // Simpan Master Mapel
+        $mapel = Mapel::create($payload);
 
         // Sync ke Tabel Pivot kelas_mapel
         if ($request->has('kelas_ids')) {
@@ -113,11 +128,14 @@ class MapelController extends Controller
                 'required',
                 'string',
                 'max:255',
-                // Validasi Unik saat Edit: Abaikan ID mapel yang sedang diedit agar tidak error sendiri
+                // Validasi Unik saat Edit: Abaikan ID mapel yang sedang diedit
                 Rule::unique('mapels')->where(function ($query) use ($sekolahId) {
-                    return $query->where('sekolah_id', $sekolahId);
+                    return $sekolahId 
+                        ? $query->where('sekolah_id', $sekolahId) 
+                        : $query->whereNull('sekolah_id');
                 })->ignore($id),
             ],
+            'kategori'   => 'nullable|string|in:kbm,rutin,ekstra',
             'kelas_ids'  => 'nullable|array',
             'kelas_ids.*'=> 'exists:kelas,id',
         ], [
@@ -127,10 +145,16 @@ class MapelController extends Controller
 
         $mapel = Mapel::findOrFail($id);
 
-        // Update Master Mapel
-        $mapel->update([
+        $payload = [
             'nama_mapel' => $request->nama_mapel,
-        ]);
+        ];
+
+        if ($request->has('kategori') && Schema::hasColumn('mapels', 'kategori')) {
+            $payload['kategori'] = $request->kategori;
+        }
+
+        // Update Master Mapel
+        $mapel->update($payload);
 
         // Sync Relasi Kelas
         if ($request->has('kelas_ids')) {

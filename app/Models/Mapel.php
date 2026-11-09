@@ -18,6 +18,7 @@ class Mapel extends Model
         'sekolah_id',
         'kode_mapel',
         'nama_mapel',
+        'kategori',
     ];
 
     /**
@@ -34,6 +35,6 @@ class Mapel extends Model
     public function kelases()
     {
         return $this->belongsToMany(Kelas::class, 'kelas_mapel', 'mapel_id', 'kelas_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 }

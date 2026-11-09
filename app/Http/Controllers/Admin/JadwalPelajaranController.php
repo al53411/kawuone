@@ -9,10 +9,29 @@ use App\Models\JadwalPelajaran;
 use App\Models\Guru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\TahunAjaran;
 
 class JadwalPelajaranController extends Controller
 {
+    /**
+     * Helper internal untuk mengecek apakah Mapel termasuk KBM Utama, Rutin, atau Ekstra
+     */
+    private function isKBMUtama($mapel)
+    {
+        $namaLower = strtolower($mapel->nama_mapel ?? '');
+        $kategori = $mapel->kategori ?? null;
+
+        if ($kategori) {
+            return $kategori === 'kbm';
+        }
+
+        $isRutin = str_contains($namaLower, 'upacara') || str_contains($namaLower, 'pembiasaan') || str_contains($namaLower, 'rutin');
+        $isEkstra = str_contains($namaLower, 'ekstra') || str_contains($namaLower, 'pramuka') || str_contains($namaLower, 'drumband') || str_contains($namaLower, 'tari') || str_contains($namaLower, 'bta');
+
+        return !$isRutin && !$isEkstra;
+    }
+
     /**
      * Menampilkan halaman utama jadwal pelajaran, alokasi waktu, dan daftar guru
      */
@@ -28,9 +47,28 @@ class JadwalPelajaranController extends Controller
         // Ambil daftar jadwal manual per baris yang sudah diinput untuk kelas ini
         $jadwalsList = JadwalPelajaran::where('kelas', $kelasAktif)->orderBy('hari')->orderBy('jam_ke')->get();
 
-        // Hitung total target jam vs total jadwal terisi
-        $totalTargetJam = $alokasis->sum('jumlah_jam');
-        $totalJadwalTerisi = $jadwalsList->count();
+        // 1. Hitung total target jam KBM UTAMA saja (KECUALI Rutin & Ekstrakurikuler)
+        $totalTargetJam = AlokasiWaktu::where('kelas', $kelasAktif)
+            ->whereHas('mapel', function ($query) {
+                if (Schema::hasColumn('mapels', 'kategori')) {
+                    $query->where('kategori', 'kbm');
+                } else {
+                    $query->whereRaw("LOWER(nama_mapel) NOT LIKE '%upacara%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%pembiasaan%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%rutin%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%ekstra%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%pramuka%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%drumband%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%tari%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%bta%'");
+                }
+            })
+            ->sum('jumlah_jam');
+
+        // 2. Hitung total jadwal terisi KBM UTAMA saja (KECUALI Rutin & Ekstrakurikuler)
+        $totalJadwalTerisi = $jadwalsList->filter(function ($item) {
+            return $this->isKBMUtama($item->mapel);
+        })->count();
 
         return view('admin.jadwal.index', compact('mapels', 'kelasAktif', 'alokasis', 'jadwalsList', 'gurus', 'totalTargetJam', 'totalJadwalTerisi'));
     }
@@ -56,8 +94,8 @@ class JadwalPelajaranController extends Controller
     }
 
     /**
-     * Mengatur alokasi waktu secara massal/serentak untuk semua mapel
-     * (Kecuali PAI dan PJOK)
+     * Mengatur alokasi waktu secara massal/serentak untuk semua mapel KBM
+     * (Kecuali PAI, PJOK, Kegiatan Rutin, dan Ekstrakurikuler)
      */
     public function saveAlokasiMassal(Request $request)
     {
@@ -74,7 +112,22 @@ class JadwalPelajaranController extends Controller
             'PAI',
             'PJOK',
             'Pendidikan Jasmani, Olahraga, dan Kesehatan'
-        ])->get();
+        ])
+            ->where(function ($query) {
+                if (Schema::hasColumn('mapels', 'kategori')) {
+                    $query->where('kategori', 'kbm');
+                } else {
+                    $query->whereRaw("LOWER(nama_mapel) NOT LIKE '%upacara%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%pembiasaan%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%rutin%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%ekstra%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%pramuka%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%drumband%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%tari%' 
+                    AND LOWER(nama_mapel) NOT LIKE '%bta%'");
+                }
+            })
+            ->get();
 
         foreach ($mapels as $mapel) {
             AlokasiWaktu::updateOrCreate(
@@ -83,7 +136,7 @@ class JadwalPelajaranController extends Controller
             );
         }
 
-        return back()->with('success', 'Alokasi waktu default berhasil diterapkan untuk semua mapel (kecuali Agama & Olahraga).');
+        return back()->with('success', 'Alokasi waktu default berhasil diterapkan untuk semua mapel KBM.');
     }
 
     /**
@@ -106,6 +159,7 @@ class JadwalPelajaranController extends Controller
         $mapelId = $request->mapel_id;
 
         $mapel = Mapel::find($mapelId);
+        $isKBM = $this->isKBMUtama($mapel);
         $namaMapelLOWER = strtolower($mapel->nama_mapel);
 
         // 1. VALIDASI HARI SENIN JAM KE-1 (KHUSUS UPACARA BENDERA)
@@ -133,8 +187,8 @@ class JadwalPelajaranController extends Controller
                 ->exists();
 
             if ($cekBentrokKhusus) {
-                $kategori = $isPAI ? 'Agama / PAI' : 'PJOK / Olahraga';
-                return back()->withInput()->with('error', "Gagal Menyimpan! Mata pelajaran {$kategori} sudah dijadwalkan di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
+                $kategoriText = $isPAI ? 'Agama / PAI' : 'PJOK / Olahraga';
+                return back()->withInput()->with('error', "Gagal Menyimpan! Mata pelajaran {$kategoriText} sudah dijadwalkan di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
             }
         }
 
@@ -149,27 +203,29 @@ class JadwalPelajaranController extends Controller
             return back()->withInput()->with('error', "Gagal Menyimpan! Guru '{$waliKelas}' sudah mengajar di kelas lain pada hari {$hari} jam ke-{$jamKe}.");
         }
 
-        // 3. VALIDASI SLOT JAM TERISI DI KELAS INI
+        // 4. VALIDASI SLOT JAM TERISI DI KELAS INI
         $sudahTerisi = JadwalPelajaran::where('kelas', $kelas)
             ->where('hari', $hari)
             ->where('jam_ke', $jamKe)
             ->exists();
 
         if ($sudahTerisi) {
-            return back()->withInput()->with('error', "Slot jam ke-{$jamKe} pada hari {$hari} di kelas ini sudah terisi mata pelajaran lain!");
+            return back()->withInput()->with('error', "Slot jam ke-{$jamKe} pada hari {$hari} di kelas ini sudah terisi mata pelajaran/kegiatan lain!");
         }
 
-        // 4. VALIDASI TARGET ALOKASI WAKTU MINGGUAN
-        $alokasiTarget = AlokasiWaktu::where('kelas', $kelas)->where('mapel_id', $mapelId)->first();
-        $maxJam = $alokasiTarget ? $alokasiTarget->jumlah_jam : 0;
+        // 5. VALIDASI TARGET ALOKASI WAKTU MINGGUAN (Bypass Pengecekan untuk Kegiatan Rutin & Ekstrakurikuler)
+        if ($isKBM) {
+            $alokasiTarget = AlokasiWaktu::where('kelas', $kelas)->where('mapel_id', $mapelId)->first();
+            $maxJam = $alokasiTarget ? $alokasiTarget->jumlah_jam : 0;
 
-        if ($maxJam <= 0) {
-            return back()->withInput()->with('error', "Gagal! Target alokasi waktu untuk mata pelajaran '{$mapel->nama_mapel}' belum diatur (0 Jam). Silakan atur target alokasi terlebih dahulu di Bagian 1.");
-        }
+            if ($maxJam <= 0) {
+                return back()->withInput()->with('error', "Gagal! Target alokasi waktu untuk mata pelajaran '{$mapel->nama_mapel}' belum diatur (0 Jam). Silakan atur target alokasi terlebih dahulu di Bagian 1.");
+            }
 
-        $currentCount = JadwalPelajaran::where('kelas', $kelas)->where('mapel_id', $mapelId)->count();
-        if ($currentCount >= $maxJam) {
-            return back()->withInput()->with('error', "Gagal! Mata pelajaran '{$mapel->nama_mapel}' sudah memenuhi batas alokasi target ({$maxJam} jam/minggu) untuk kelas ini.");
+            $currentCount = JadwalPelajaran::where('kelas', $kelas)->where('mapel_id', $mapelId)->count();
+            if ($currentCount >= $maxJam) {
+                return back()->withInput()->with('error', "Gagal! Mata pelajaran '{$mapel->nama_mapel}' sudah memenuhi batas alokasi target ({$maxJam} jam/minggu) untuk kelas ini.");
+            }
         }
 
         // Simpan sesi jadwal baru
@@ -181,7 +237,7 @@ class JadwalPelajaranController extends Controller
             'mapel_id' => $mapelId,
         ]);
 
-        return back()->with('success', 'Sesi jadwal pelajaran berhasil ditambahkan.');
+        return back()->with('success', 'Sesi jadwal pelajaran / kegiatan berhasil ditambahkan.');
     }
 
     /**
@@ -205,16 +261,37 @@ class JadwalPelajaranController extends Controller
 
         // Ambil data alokasi waktu per mapel untuk kelas terpilih
         $alokasis = AlokasiWaktu::where('kelas', $kelasAktif)->get()->keyBy('mapel_id');
-        $totalTargetJam = $alokasis->sum('jumlah_jam');
+
+        // Hitung total target jam KBM UTAMA saja
+        $totalTargetJam = AlokasiWaktu::where('kelas', $kelasAktif)
+            ->whereHas('mapel', function ($query) {
+                if (Schema::hasColumn('mapels', 'kategori')) {
+                    $query->where('kategori', 'kbm');
+                } else {
+                    $query->whereRaw("LOWER(nama_mapel) NOT LIKE '%upacara%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%pembiasaan%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%rutin%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%ekstra%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%pramuka%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%drumband%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%tari%' 
+                        AND LOWER(nama_mapel) NOT LIKE '%bta%'");
+                }
+            })
+            ->sum('jumlah_jam');
 
         // Ambil data jadwal yang sudah tersimpan
         $jadwalsList = JadwalPelajaran::where('kelas', $kelasAktif)->get();
-        $totalJadwalTerisi = $jadwalsList->count();
 
-        // Notifikasi peringatan jika jadwal terisi belum pas dengan total target
+        // Hitung total jadwal terisi KBM UTAMA saja
+        $totalJadwalTerisi = $jadwalsList->filter(function ($item) {
+            return $this->isKBMUtama($item->mapel);
+        })->count();
+
+        // Notifikasi peringatan jika jadwal terisi belum pas dengan total target KBM
         if ($totalTargetJam > 0 && $totalJadwalTerisi < $totalTargetJam) {
             $kekurangan = $totalTargetJam - $totalJadwalTerisi;
-            session()->flash('warning', "Peringatan: Jumlah sesi jadwal terisi baru {$totalJadwalTerisi} jam dari target {$totalTargetJam} jam (kurang {$kekurangan} jam).");
+            session()->flash('warning', "Peringatan: Jumlah sesi KBM terisi baru {$totalJadwalTerisi} jam dari target {$totalTargetJam} jam (kurang {$kekurangan} jam).");
         }
 
         $jadwals = $jadwalsList->groupBy(function ($item) {

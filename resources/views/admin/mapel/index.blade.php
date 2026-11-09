@@ -11,12 +11,12 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Mata Pelajaran</h1>
-                <p class="text-slate-500 text-sm mt-1">Kelola data mata pelajaran dan pemetaan kelas pengampu</p>
+                <p class="text-slate-500 text-sm mt-1">Kelola data mata pelajaran, kegiatan rutin, serta ekstrakurikuler sekolah</p>
             </div>
             <button type="button" onclick="openModal('modalTambahMapel')"
                 class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-md shadow-blue-500/20 active:scale-95">
                 <i class="fa-solid fa-plus text-xs"></i>
-                <span>Tambah Mapel</span>
+                <span>Tambah Mapel / Kegiatan</span>
             </button>
         </div>
 
@@ -53,14 +53,30 @@
                     <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                         <tr>
                             <th scope="col" class="py-4 px-6 w-16 text-center">No</th>
-                            <th scope="col" class="py-4 px-6 w-36">Kode Mapel</th>
-                            <th scope="col" class="py-4 px-6">Nama Mata Pelajaran</th>
+                            <th scope="col" class="py-4 px-6 w-32">Kode</th>
+                            <th scope="col" class="py-4 px-6">Nama Mata Pelajaran / Kegiatan</th>
+                            <th scope="col" class="py-4 px-6 w-44">Kategori</th>
                             <th scope="col" class="py-4 px-6">Diajarkan di Kelas</th>
-                            <th scope="col" class="py-4 px-6 w-36 text-center">Aksi</th>
+                            <th scope="col" class="py-4 px-6 w-28 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($mapels as $index => $item)
+                            @php
+                                $namaLower = strtolower($item->nama_mapel);
+                                $kat = $item->kategori ?? null;
+
+                                // Deteksi otomatis jika kolom kategori di DB belum diisi
+                                if (!$kat) {
+                                    if (str_contains($namaLower, 'upacara') || str_contains($namaLower, 'pembiasaan') || str_contains($namaLower, 'rutin')) {
+                                        $kat = 'rutin';
+                                    } elseif (str_contains($namaLower, 'ekstra') || str_contains($namaLower, 'pramuka') || str_contains($namaLower, 'drumband') || str_contains($namaLower, 'tari') || str_contains($namaLower, 'bta')) {
+                                        $kat = 'ekstra';
+                                    } else {
+                                        $kat = 'kbm';
+                                    }
+                                }
+                            @endphp
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <td class="py-4 px-6 text-center font-medium text-slate-400">{{ $index + 1 }}</td>
                                 <td class="py-4 px-6">
@@ -72,13 +88,28 @@
                                     {{ $item->nama_mapel }}
                                 </td>
                                 <td class="py-4 px-6">
+                                    @if($kat === 'rutin')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <i class="fa-solid fa-flag text-[10px]"></i> Rutin / Pembiasaan
+                                        </span>
+                                    @elseif($kat === 'ekstra')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            <i class="fa-solid fa-puzzle-piece text-[10px]"></i> Ekstrakurikuler
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <i class="fa-solid fa-book-open text-[10px]"></i> KBM Utama
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-4 px-6">
                                     <div class="flex flex-wrap gap-1.5">
                                         @forelse($item->kelases as $kls)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                                                 {{ $kls->nama_kelas }}
                                             </span>
                                         @empty
-                                            <span class="text-xs text-slate-400 italic">Belum dihubungkan ke kelas</span>
+                                            <span class="text-xs text-slate-400 italic">Semua / Belum dihubungkan</span>
                                         @endforelse
                                     </div>
                                 </td>
@@ -105,7 +136,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-8 text-center text-slate-400">
+                                <td colspan="6" class="py-8 text-center text-slate-400">
                                     <i class="fa-solid fa-folder-open text-2xl mb-2 block text-slate-300"></i>
                                     Belum ada data mata pelajaran.
                                 </td>
@@ -125,7 +156,7 @@
         <form action="{{ route('admin.mapel.store') }}" method="POST">
             @csrf
             <div class="flex items-center justify-between p-5 border-b border-slate-100">
-                <h3 class="text-lg font-semibold text-slate-900">Tambah Mata Pelajaran</h3>
+                <h3 class="text-lg font-semibold text-slate-900">Tambah Mata Pelajaran / Kegiatan</h3>
                 <button type="button" onclick="closeModal('modalTambahMapel')"
                     class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
                     <i class="fa-solid fa-xmark text-lg"></i>
@@ -133,13 +164,23 @@
             </div>
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Nama Mata Pelajaran <span class="text-rose-500">*</span></label>
-                    <input type="text" name="nama_mapel" value="{{ old('nama_mapel') }}" placeholder="Contoh: Matematika" required
+                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Nama Mata Pelajaran / Kegiatan <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama_mapel" value="{{ old('nama_mapel') }}" placeholder="Contoh: Matematika / Pembiasaan Sholat Dhuha / Ekstra Pramuka" required
                         class="w-full px-3.5 py-2.5 bg-slate-50 border {{ $errors->has('nama_mapel') ? 'border-rose-500' : 'border-slate-300' }} rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white transition">
                     @error('nama_mapel')
                         <span class="text-xs text-rose-500 mt-1 block font-medium">{{ $message }}</span>
                     @enderror
                 </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Kategori Pelajaran / Kegiatan</label>
+                    <select name="kategori" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white transition">
+                        <option value="kbm" {{ old('kategori') == 'kbm' ? 'selected' : '' }}>Mata Pelajaran KBM Utama</option>
+                        <option value="rutin" {{ old('kategori') == 'rutin' ? 'selected' : '' }}>Kegiatan Rutin & Pembiasaan (Non-KBM)</option>
+                        <option value="ekstra" {{ old('kategori') == 'ekstra' ? 'selected' : '' }}>Ekstrakurikuler</option>
+                    </select>
+                </div>
+
                 <div>
                     <label class="block text-xs font-medium text-slate-700 mb-2">Pilih Kelas yang Mengampu</label>
                     <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
@@ -166,6 +207,20 @@
 
 <!-- Modal Edit Mapel -->
 @foreach($mapels as $item)
+    @php
+        $namaLowerEdit = strtolower($item->nama_mapel);
+        $katEdit = $item->kategori ?? null;
+
+        if (!$katEdit) {
+            if (str_contains($namaLowerEdit, 'upacara') || str_contains($namaLowerEdit, 'pembiasaan') || str_contains($namaLowerEdit, 'rutin')) {
+                $katEdit = 'rutin';
+            } elseif (str_contains($namaLowerEdit, 'ekstra') || str_contains($namaLowerEdit, 'pramuka') || str_contains($namaLowerEdit, 'drumband') || str_contains($namaLowerEdit, 'tari') || str_contains($namaLowerEdit, 'bta')) {
+                $katEdit = 'ekstra';
+            } else {
+                $katEdit = 'kbm';
+            }
+        }
+    @endphp
     <div id="modalEditMapel{{ $item->id }}"
         class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="relative w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-xl transform transition-all">
@@ -173,7 +228,7 @@
                 @csrf
                 @method('PUT')
                 <div class="flex items-center justify-between p-5 border-b border-slate-100">
-                    <h3 class="text-lg font-semibold text-slate-900">Edit Mata Pelajaran</h3>
+                    <h3 class="text-lg font-semibold text-slate-900">Edit Mata Pelajaran / Kegiatan</h3>
                     <button type="button" onclick="closeModal('modalEditMapel{{ $item->id }}')"
                         class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
                         <i class="fa-solid fa-xmark text-lg"></i>
@@ -186,9 +241,17 @@
                             class="w-full px-3.5 py-2.5 bg-slate-200 border border-slate-300 rounded-xl text-sm text-slate-600 cursor-not-allowed transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nama Mata Pelajaran <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nama Mata Pelajaran / Kegiatan <span class="text-rose-500">*</span></label>
                         <input type="text" name="nama_mapel" value="{{ old('nama_mapel', $item->nama_mapel) }}" required
                             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Kategori Pelajaran / Kegiatan</label>
+                        <select name="kategori" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white transition">
+                            <option value="kbm" {{ old('kategori', $katEdit) == 'kbm' ? 'selected' : '' }}>Mata Pelajaran KBM Utama</option>
+                            <option value="rutin" {{ old('kategori', $katEdit) == 'rutin' ? 'selected' : '' }}>Kegiatan Rutin & Pembiasaan (Non-KBM)</option>
+                            <option value="ekstra" {{ old('kategori', $katEdit) == 'ekstra' ? 'selected' : '' }}>Ekstrakurikuler</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-2">Pilih Kelas</label>
@@ -223,7 +286,6 @@
         document.getElementById(id).classList.add('hidden');
     }
 
-    // Script otomatis memunculkan SweetAlert jika ada error validasi dari backend
     @if($errors->any())
         Swal.fire({
             icon: 'error',
